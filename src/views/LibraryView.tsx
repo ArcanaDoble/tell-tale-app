@@ -2,21 +2,25 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ResourceCard from '../components/ResourceCard';
 import type { ResourceMeta } from '../types/library';
-import { getLibrary } from '../services/libraryService';
+import { deleteResource, getLibrary } from '../services/libraryService';
 
 function LibraryView(): JSX.Element {
   const [resources, setResources] = useState<ResourceMeta[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     const fetchResources = async (): Promise<void> => {
       try {
         setIsLoading(true);
+        setFeedback(null);
         const items = await getLibrary();
         setResources(items);
+        setLoadError(null);
       } catch (err) {
-        setError('No pudimos cargar la biblioteca. Intenta nuevamente.');
+        setLoadError('No pudimos cargar la biblioteca. Intenta nuevamente.');
       } finally {
         setIsLoading(false);
       }
@@ -24,6 +28,29 @@ function LibraryView(): JSX.Element {
 
     void fetchResources();
   }, []);
+
+  const handleDelete = async (resource: ResourceMeta): Promise<void> => {
+    const confirmed = window.confirm(
+      `¿Deseas eliminar "${resource.title}" de la biblioteca? Esta acción no se puede deshacer.`
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingId(resource.id);
+    setFeedback(null);
+
+    try {
+      await deleteResource(resource.id);
+      setResources((prevResources) => prevResources.filter((item) => item.id !== resource.id));
+      setFeedback({ type: 'success', message: `"${resource.title}" se eliminó correctamente.` });
+    } catch (error) {
+      console.error('Error deleting resource', error);
+      setFeedback({ type: 'error', message: 'No pudimos eliminar el recurso. Intenta nuevamente.' });
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <section className="flex flex-1 flex-col gap-6">
@@ -43,18 +70,34 @@ function LibraryView(): JSX.Element {
           </Link>
         </div>
       </header>
+      {feedback != null ? (
+        <div
+          className={`rounded-2xl border p-4 text-sm ${
+            feedback.type === 'success'
+              ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-100'
+              : 'border-rose-600/60 bg-rose-600/10 text-rose-100'
+          }`}
+        >
+          {feedback.message}
+        </div>
+      ) : null}
       {isLoading ? (
         <div className="grid flex-1 place-items-center rounded-2xl border border-slate-800 bg-slate-950/40 p-12 text-slate-400">
           Cargando biblioteca...
         </div>
-      ) : error != null ? (
+      ) : loadError != null ? (
         <div className="grid flex-1 place-items-center rounded-2xl border border-rose-900/60 bg-rose-950/40 p-12 text-rose-200">
-          {error}
+          {loadError}
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {resources.map((resource) => (
-            <ResourceCard key={resource.id} resource={resource} />
+            <ResourceCard
+              key={resource.id}
+              resource={resource}
+              onDelete={handleDelete}
+              isDeleting={deletingId === resource.id}
+            />
           ))}
         </div>
       )}

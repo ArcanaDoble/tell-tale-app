@@ -1,5 +1,6 @@
-import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
+import { deleteObject, getDownloadURL, listAll, ref, uploadBytes } from 'firebase/storage';
+import type { StorageReference } from 'firebase/storage';
 import type { Resource, ResourceMeta, ResourceType, ResourceUploadPayload } from '../types/library';
 import { db, isFirebaseConfigured, storage } from '../firebase/config';
 
@@ -186,4 +187,40 @@ export async function uploadResource(payload: ResourceUploadPayload): Promise<st
   });
 
   return documentRef.id;
+}
+
+async function deleteFolderContents(folderRef: StorageReference): Promise<void> {
+  const { items, prefixes } = await listAll(folderRef);
+  await Promise.all([
+    ...items.map(async (item) => {
+      try {
+        await deleteObject(item);
+      } catch (error) {
+        console.warn(`Could not delete storage item ${item.fullPath}`, error);
+      }
+    }),
+    ...prefixes.map(async (prefix) => {
+      await deleteFolderContents(prefix);
+    })
+  ]);
+}
+
+export async function deleteResource(id: string): Promise<void> {
+  const database = db;
+  const storageService = storage;
+
+  if (!isFirebaseConfigured || database == null || storageService == null) {
+    throw new Error('Firebase no está configurado correctamente para eliminar recursos.');
+  }
+
+  const resourceRef = doc(database, COLLECTION_NAME, id);
+
+  try {
+    const rootRef = ref(storageService, `resources/${id}`);
+    await deleteFolderContents(rootRef);
+  } catch (error) {
+    console.warn(`Failed to delete storage assets for resource ${id}. Continuing with document deletion.`, error);
+  }
+
+  await deleteDoc(resourceRef);
 }

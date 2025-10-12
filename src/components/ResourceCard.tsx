@@ -3,6 +3,8 @@ import type { ResourceMeta } from '../types/library';
 
 interface ResourceCardProps {
   resource: ResourceMeta;
+  onDelete?: (resource: ResourceMeta) => void;
+  isDeleting?: boolean;
 }
 
 const typeLabels: Record<ResourceMeta['resourceType'], string> = {
@@ -11,7 +13,7 @@ const typeLabels: Record<ResourceMeta['resourceType'], string> = {
   documento: 'Documento'
 };
 
-function ResourceCard({ resource }: ResourceCardProps): JSX.Element {
+function ResourceCard({ resource, onDelete, isDeleting = false }: ResourceCardProps): JSX.Element {
   const label = typeLabels[resource.resourceType] ?? 'Nuevo';
   const hasDownload = !resource.hasReader && resource.downloadUrl != null;
 
@@ -34,9 +36,9 @@ function ResourceCard({ resource }: ResourceCardProps): JSX.Element {
           <p className="text-sm text-slate-400">{resource.author}</p>
         </header>
         <p className="line-clamp-3 text-sm text-slate-300">{resource.description}</p>
-        <footer className="mt-auto flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
+        <footer className="mt-auto flex items-center justify-between gap-3 text-xs uppercase tracking-wide text-slate-400">
           <span>{resource.hasReader ? `${resource.pageCount} páginas` : 'Disponible para descarga'}</span>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <Link
               to={`/details/${resource.id}`}
               className="rounded-full border border-slate-700 px-3 py-1 font-medium text-slate-200 transition hover:border-primary hover:text-primary"
@@ -59,6 +61,18 @@ function ResourceCard({ resource }: ResourceCardProps): JSX.Element {
               >
                 Descargar
               </a>
+            ) : null}
+            {onDelete != null ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onDelete(resource);
+                }}
+                disabled={isDeleting}
+                className="rounded-full border border-rose-700 px-3 py-1 font-semibold text-rose-200 transition hover:bg-rose-600/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isDeleting ? 'Eliminando…' : 'Eliminar'}
+              </button>
             ) : null}
           </div>
         </footer>

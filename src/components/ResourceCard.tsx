@@ -5,7 +5,16 @@ interface ResourceCardProps {
   resource: ResourceMeta;
 }
 
+const typeLabels: Record<ResourceMeta['resourceType'], string> = {
+  manga: 'Manga',
+  libro: 'Libro',
+  documento: 'Documento'
+};
+
 function ResourceCard({ resource }: ResourceCardProps): JSX.Element {
+  const label = typeLabels[resource.resourceType] ?? 'Nuevo';
+  const hasDownload = !resource.hasReader && resource.downloadUrl != null;
+
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/60 shadow-lg transition hover:border-primary/70 hover:shadow-primary/20">
       <div className="relative aspect-[3/4] overflow-hidden">
@@ -16,7 +25,7 @@ function ResourceCard({ resource }: ResourceCardProps): JSX.Element {
           loading="lazy"
         />
         <div className="absolute left-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
-          {resource.tags[0] ?? 'Nuevo'}
+          {label}
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-3 p-4">
@@ -26,7 +35,7 @@ function ResourceCard({ resource }: ResourceCardProps): JSX.Element {
         </header>
         <p className="line-clamp-3 text-sm text-slate-300">{resource.description}</p>
         <footer className="mt-auto flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
-          <span>{resource.pageCount} páginas</span>
+          <span>{resource.hasReader ? `${resource.pageCount} páginas` : 'Disponible para descarga'}</span>
           <div className="flex gap-2">
             <Link
               to={`/details/${resource.id}`}
@@ -34,12 +43,23 @@ function ResourceCard({ resource }: ResourceCardProps): JSX.Element {
             >
               Detalles
             </Link>
-            <Link
-              to={`/read/${resource.id}`}
-              className="rounded-full bg-primary px-3 py-1 font-semibold text-white transition hover:bg-primary/80"
-            >
-              Leer
-            </Link>
+            {resource.hasReader ? (
+              <Link
+                to={`/read/${resource.id}`}
+                className="rounded-full bg-primary px-3 py-1 font-semibold text-white transition hover:bg-primary/80"
+              >
+                Leer
+              </Link>
+            ) : hasDownload ? (
+              <a
+                href={resource.downloadUrl ?? '#'}
+                className="rounded-full bg-primary px-3 py-1 font-semibold text-white transition hover:bg-primary/80"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Descargar
+              </a>
+            ) : null}
           </div>
         </footer>
       </div>

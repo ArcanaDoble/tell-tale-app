@@ -14,7 +14,10 @@ describe('LibraryView', () => {
         author: 'Tester',
         coverUrl: 'https://example.com/cover.jpg',
         tags: ['prueba'],
-        pageCount: 10
+        pageCount: 10,
+        resourceType: 'manga',
+        hasReader: true,
+        downloadUrl: null
       }
     ];
 

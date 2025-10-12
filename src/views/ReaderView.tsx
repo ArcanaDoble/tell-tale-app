@@ -61,7 +61,29 @@ function ReaderView(): JSX.Element {
           </Link>
         </div>
       </div>
-      <PageViewer pages={resource.pages} />
+      {resource.hasReader ? (
+        <PageViewer pages={resource.pages} />
+      ) : (
+        <div className="grid flex-1 place-items-center rounded-2xl border border-slate-800 bg-slate-950/40 p-12 text-center text-slate-300">
+          <div className="flex max-w-xl flex-col items-center gap-4">
+            <p className="text-lg font-semibold text-white">Este recurso no tiene visor disponible.</p>
+            <p>
+              Puedes descargar el archivo para leerlo en tu dispositivo favorito. Si esperabas ver páginas aquí, verifica que el
+              recurso subido incluya imágenes.
+            </p>
+            {resource.downloadUrl != null ? (
+              <a
+                href={resource.downloadUrl}
+                className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary/80"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Descargar archivo
+              </a>
+            ) : null}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

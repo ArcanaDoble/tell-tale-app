@@ -30,6 +30,16 @@ function AppLayout(): JSX.Element {
             >
               Destacados
             </NavLink>
+            <NavLink
+              to="/upload"
+              className={({ isActive }) =>
+                `rounded-md px-3 py-1 transition-colors hover:bg-primary/10 ${
+                  isActive ? 'bg-primary/20 text-primary' : ''
+                }`
+              }
+            >
+              Subir
+            </NavLink>
           </nav>
         </div>
       </header>

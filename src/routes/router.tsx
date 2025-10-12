@@ -3,6 +3,7 @@ import AppLayout from '../views/AppLayout';
 import LibraryView from '../views/LibraryView';
 import DetailsView from '../views/DetailsView';
 import ReaderView from '../views/ReaderView';
+import UploadView from '../views/UploadView';
 
 export const router = createBrowserRouter([
   {
@@ -20,6 +21,10 @@ export const router = createBrowserRouter([
       {
         path: 'read/:resourceId',
         element: <ReaderView />
+      },
+      {
+        path: 'upload',
+        element: <UploadView />
       }
     ]
   }

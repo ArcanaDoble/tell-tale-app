@@ -57,12 +57,12 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
 
   return (
     <section className="flex w-full flex-col gap-4">
-      <div className="flex flex-col gap-4 rounded-3xl border border-slate-800 bg-slate-950/70 p-4 shadow-lg">
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-wide text-slate-400">
+      <div className="flex flex-col gap-4 rounded-[26px] border border-white/10 bg-white/[0.04] p-4 shadow-lg">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-wide text-slate-300">
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-full border border-slate-700 px-3 py-1 font-semibold text-slate-200 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:border-slate-800 disabled:text-slate-600"
+              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 font-semibold text-slate-200 transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:border-white/5 disabled:text-slate-600"
               onClick={handlePrev}
               disabled={clampedPage === 0}
             >
@@ -70,17 +70,17 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
             </button>
             <button
               type="button"
-              className="rounded-full border border-slate-700 px-3 py-1 font-semibold text-slate-200 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:border-slate-800 disabled:text-slate-600"
+              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 font-semibold text-slate-200 transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:border-white/5 disabled:text-slate-600"
               onClick={handleNext}
               disabled={clampedPage >= totalPages - 1}
             >
               Siguiente →
             </button>
           </div>
-          <div className="flex items-center gap-2 text-slate-300">
+          <div className="flex items-center gap-2 text-slate-200">
             <button
               type="button"
-              className="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary hover:text-primary"
+              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary/60 hover:text-primary"
               onClick={() => {
                 setZoom(1);
               }}
@@ -89,17 +89,17 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
             </button>
             <button
               type="button"
-              className="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary hover:text-primary"
+              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary/60 hover:text-primary"
               onClick={() => {
                 handleZoom(-0.1);
               }}
             >
               -
             </button>
-            <span className="text-xs font-semibold uppercase tracking-wide">{Math.round(zoom * 100)}%</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-300">{Math.round(zoom * 100)}%</span>
             <button
               type="button"
-              className="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary hover:text-primary"
+              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary/60 hover:text-primary"
               onClick={() => {
                 handleZoom(0.1);
               }}
@@ -125,7 +125,7 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
         </div>
         <div className="flex justify-center">
           <div
-            className="max-h-[70vh] w-full overflow-hidden rounded-2xl border border-slate-800 bg-black/60 p-2 sm:max-h-[75vh] lg:max-h-[80vh]"
+            className="max-h-[70vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-black/70 p-2 sm:max-h-[75vh] lg:max-h-[80vh]"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
@@ -153,7 +153,7 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
                   className={`relative h-20 w-14 flex-shrink-0 overflow-hidden rounded-lg border transition ${
                     index === clampedPage
                       ? 'border-primary/80 ring-2 ring-primary/50'
-                      : 'border-slate-700 hover:border-primary/50'
+                      : 'border-white/10 hover:border-primary/50'
                   }`}
                   onClick={() => {
                     goToPage(index);

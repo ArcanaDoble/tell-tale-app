@@ -150,9 +150,9 @@ function UploadResourceDialog({ open, onClose, onCreated }: UploadResourceDialog
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-6 backdrop-blur">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur">
       <form
-        className="relative flex w-full max-w-3xl flex-col gap-6 overflow-hidden overflow-y-auto rounded-3xl border border-slate-800 bg-slate-950/95 p-6 shadow-2xl sm:p-8"
+        className="relative flex w-full max-w-3xl flex-col gap-6 overflow-hidden overflow-y-auto rounded-[28px] border border-white/10 bg-[#060b16]/95 p-6 shadow-2xl shadow-primary/20 sm:p-8"
         onSubmit={handleSubmit}
       >
         <header className="flex items-start justify-between gap-4">
@@ -165,7 +165,7 @@ function UploadResourceDialog({ open, onClose, onCreated }: UploadResourceDialog
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-slate-700 px-3 py-1 text-sm font-semibold uppercase tracking-wide text-slate-300 transition hover:border-primary hover:text-primary"
+            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-200 transition hover:border-primary/60 hover:text-primary"
             disabled={isSubmitting}
           >
             Cerrar
@@ -182,7 +182,7 @@ function UploadResourceDialog({ open, onClose, onCreated }: UploadResourceDialog
                 onChange={(event) => {
                   setTitle(event.target.value);
                 }}
-                className="rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-2 text-slate-100 transition focus:border-primary focus:outline-none"
+                className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-slate-100 transition focus:border-primary focus:bg-white/[0.08] focus:outline-none"
                 placeholder="Nombre del manga o libro"
               />
             </label>
@@ -194,7 +194,7 @@ function UploadResourceDialog({ open, onClose, onCreated }: UploadResourceDialog
                 onChange={(event) => {
                   setAuthor(event.target.value);
                 }}
-                className="rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-2 text-slate-100 transition focus:border-primary focus:outline-none"
+                className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-slate-100 transition focus:border-primary focus:bg-white/[0.08] focus:outline-none"
                 placeholder="Nombre del autor o estudio"
               />
             </label>
@@ -206,7 +206,7 @@ function UploadResourceDialog({ open, onClose, onCreated }: UploadResourceDialog
                   setDescription(event.target.value);
                 }}
                 rows={4}
-                className="resize-none rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-slate-100 transition focus:border-primary focus:outline-none"
+                className="resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-slate-100 transition focus:border-primary focus:bg-white/[0.08] focus:outline-none"
               />
             </label>
             <label className="flex flex-col gap-2 text-sm">
@@ -217,12 +217,12 @@ function UploadResourceDialog({ open, onClose, onCreated }: UploadResourceDialog
                 onChange={(event) => {
                   setTagsInput(event.target.value);
                 }}
-                className="rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-2 text-slate-100 transition focus:border-primary focus:outline-none"
+                className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-slate-100 transition focus:border-primary focus:bg-white/[0.08] focus:outline-none"
                 placeholder="Separadas por comas (ej. aventura, misterio)"
               />
             </label>
 
-            <div className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <span className="text-sm font-semibold text-slate-200">Formato del contenido</span>
               <div className="grid gap-2 sm:grid-cols-2">
                 <button
@@ -232,8 +232,8 @@ function UploadResourceDialog({ open, onClose, onCreated }: UploadResourceDialog
                   }}
                   className={`flex flex-col gap-1 rounded-xl border px-4 py-3 text-left transition ${
                     mode === 'document'
-                      ? 'border-primary/80 bg-primary/10 text-primary'
-                      : 'border-slate-700 text-slate-300 hover:border-primary/40 hover:text-slate-100'
+                      ? 'border-primary/80 bg-primary/15 text-primary shadow-glow'
+                      : 'border-white/10 bg-white/[0.02] text-slate-300 hover:border-primary/40 hover:text-slate-100'
                   }`}
                 >
                   <span className="text-sm font-semibold uppercase tracking-wide">Documento</span>
@@ -248,8 +248,8 @@ function UploadResourceDialog({ open, onClose, onCreated }: UploadResourceDialog
                   }}
                   className={`flex flex-col gap-1 rounded-xl border px-4 py-3 text-left transition ${
                     mode === 'images'
-                      ? 'border-primary/80 bg-primary/10 text-primary'
-                      : 'border-slate-700 text-slate-300 hover:border-primary/40 hover:text-slate-100'
+                      ? 'border-primary/80 bg-primary/15 text-primary shadow-glow'
+                      : 'border-white/10 bg-white/[0.02] text-slate-300 hover:border-primary/40 hover:text-slate-100'
                   }`}
                 >
                   <span className="text-sm font-semibold uppercase tracking-wide">Imágenes</span>
@@ -267,7 +267,7 @@ function UploadResourceDialog({ open, onClose, onCreated }: UploadResourceDialog
                       const files = event.target.files;
                       setDocumentFile(files != null && files.length > 0 ? files[0] : undefined);
                     }}
-                    className="cursor-pointer rounded-xl border border-dashed border-slate-700 bg-slate-900/60 px-4 py-3 text-slate-300 transition file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:border-primary"
+                    className="cursor-pointer rounded-xl border border-dashed border-white/15 bg-white/[0.04] px-4 py-3 text-slate-300 transition file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:border-primary/70"
                   />
                 </label>
               ) : (
@@ -281,7 +281,7 @@ function UploadResourceDialog({ open, onClose, onCreated }: UploadResourceDialog
                       const files = Array.from(event.target.files ?? []);
                       setPageFiles(files);
                     }}
-                    className="cursor-pointer rounded-xl border border-dashed border-slate-700 bg-slate-900/60 px-4 py-3 text-slate-300 transition file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:border-primary"
+                    className="cursor-pointer rounded-xl border border-dashed border-white/15 bg-white/[0.04] px-4 py-3 text-slate-300 transition file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:border-primary/70"
                   />
                   {pagesPreview.length > 0 && (
                     <div className="flex flex-wrap gap-2">
@@ -305,7 +305,7 @@ function UploadResourceDialog({ open, onClose, onCreated }: UploadResourceDialog
             </div>
           </section>
 
-          <aside className="flex flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+          <aside className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
             <label className="flex flex-col gap-2 text-sm">
               <span className="font-semibold text-slate-200">Portada</span>
               <input
@@ -315,10 +315,10 @@ function UploadResourceDialog({ open, onClose, onCreated }: UploadResourceDialog
                   const files = event.target.files;
                   setCoverFile(files != null && files.length > 0 ? files[0] : undefined);
                 }}
-                className="cursor-pointer rounded-xl border border-dashed border-slate-700 bg-slate-900/60 px-4 py-3 text-slate-300 transition file:mr-4 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:border-accent/80"
+                className="cursor-pointer rounded-xl border border-dashed border-white/15 bg-white/[0.04] px-4 py-3 text-slate-300 transition file:mr-4 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:border-accent/80"
               />
             </label>
-            <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/60">
+            <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
               {coverPreview != null ? (
                 <img src={coverPreview} alt="Vista previa de la portada" className="h-full w-full object-cover" />
               ) : (
@@ -327,7 +327,7 @@ function UploadResourceDialog({ open, onClose, onCreated }: UploadResourceDialog
                 </div>
               )}
             </div>
-            <div className="rounded-xl bg-slate-950/70 p-4 text-xs text-slate-400">
+            <div className="rounded-xl bg-white/[0.03] p-4 text-xs text-slate-400">
               <p className="font-semibold text-slate-200">Recomendaciones</p>
               <ul className="mt-2 space-y-1 list-disc pl-4">
                 <li>Organiza tus etiquetas para filtrar fácilmente la biblioteca.</li>
@@ -338,16 +338,16 @@ function UploadResourceDialog({ open, onClose, onCreated }: UploadResourceDialog
           </aside>
         </div>
 
-        {errorMessage != null && <p className="rounded-xl border border-rose-900/60 bg-rose-950/60 px-4 py-3 text-sm text-rose-200">{errorMessage}</p>}
+        {errorMessage != null && <p className="rounded-xl border border-rose-900/60 bg-rose-950/70 px-4 py-3 text-sm text-rose-200">{errorMessage}</p>}
 
-        <footer className="flex flex-col gap-3 border-t border-slate-800 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <footer className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-slate-500">
             El proceso puede tardar unos segundos según el tamaño del archivo. Mantén la ventana abierta hasta finalizar.
           </p>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-2 text-sm font-semibold text-white transition hover:bg-primary/80 disabled:cursor-not-allowed disabled:bg-slate-700"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-2 text-sm font-semibold text-white shadow-glow transition hover:bg-primary/80 disabled:cursor-not-allowed disabled:bg-slate-700"
           >
             {isSubmitting ? 'Subiendo...' : 'Guardar en la biblioteca'}
           </button>

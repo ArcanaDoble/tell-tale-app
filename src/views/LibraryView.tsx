@@ -99,60 +99,68 @@ function LibraryView(): JSX.Element {
   }, [filteredResources]);
 
   return (
-    <section className="flex flex-1 flex-col gap-10">
-      <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900/90 via-slate-900/60 to-slate-950/90 p-6 sm:p-10">
-        <div className="absolute -right-10 top-6 hidden h-48 w-48 rounded-full bg-primary/20 blur-3xl lg:block" />
-        <div className="absolute -bottom-16 left-4 hidden h-52 w-52 rounded-full bg-accent/20 blur-3xl lg:block" />
+    <section className="relative flex flex-1 flex-col gap-8 pb-24 lg:gap-12 lg:pb-10">
+      <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] p-6 shadow-glow transition lg:p-10">
+        <div className="absolute -left-12 top-10 h-44 w-44 rounded-full bg-primary/30 blur-3xl" />
+        <div className="absolute -right-16 bottom-0 h-48 w-48 rounded-full bg-accent/25 blur-3xl" />
+        <div className="absolute inset-0 bg-grid-light bg-[size:72px_72px] opacity-[0.12]" />
         <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="max-w-2xl space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">Tu biblioteca digital</p>
-            <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Todo tu manga y lectura, sincronizado en móvil, tablet y escritorio.
+          <div className="max-w-2xl space-y-4">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-primary">
+              <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+              Biblioteca sincronizada
+            </p>
+            <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              Toda tu colección, lista para leer donde quieras.
             </h1>
-            <p className="text-sm text-slate-300 sm:text-base">
-              Sube capítulos en PDF, EPUB o imágenes, organiza tus colecciones por etiquetas y continúa la lectura desde cualquier dispositivo.
+            <p className="text-sm leading-relaxed text-slate-300 sm:text-base">
+              Gestiona mangas, cómics y novelas en un panel pensado para móvil. Busca por etiqueta, formato o autor y retoma justo donde lo dejaste.
             </p>
             {libraryStats.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-2 text-xs text-slate-400">
                 {libraryStats.tags.map((tag) => (
-                  <span key={tag} className="rounded-full border border-slate-700/80 px-3 py-1">
+                  <span key={tag} className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1">
                     #{tag}
                   </span>
                 ))}
               </div>
             )}
           </div>
-          <div className="flex flex-col gap-4 rounded-3xl border border-slate-800/70 bg-slate-950/60 p-6 text-sm text-slate-300">
-            <div className="flex items-center justify-between gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-surface/80 p-4 text-sm text-slate-300">
               <span className="text-xs uppercase tracking-wide text-slate-400">Títulos guardados</span>
-              <span className="text-2xl font-semibold text-white">{libraryStats.totalItems}</span>
+              <span className="text-3xl font-semibold text-white">{libraryStats.totalItems}</span>
+              <span className="text-xs text-slate-500">Colección activa sincronizada con la nube</span>
             </div>
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-surface/80 p-4 text-sm text-slate-300">
               <span className="text-xs uppercase tracking-wide text-slate-400">Páginas disponibles</span>
-              <span className="text-xl font-semibold text-white">{libraryStats.totalPages}</span>
+              <span className="text-2xl font-semibold text-white">{libraryStats.totalPages}</span>
+              <span className="text-xs text-slate-500">Perfecto para lecturas offline en móvil</span>
             </div>
             {libraryStats.lastUpdated != null && (
-              <div className="flex flex-col gap-1 text-xs text-slate-500">
-                <span className="font-semibold text-slate-300">Actualizado</span>
-                <span>{new Date(libraryStats.lastUpdated).toLocaleString()}</span>
+              <div className="col-span-full flex items-center justify-between gap-3 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 text-xs text-primary">
+                <div className="flex flex-col">
+                  <span className="font-semibold uppercase tracking-wide">Última actualización</span>
+                  <span className="text-primary/80">{new Date(libraryStats.lastUpdated).toLocaleString()}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsUploadOpen(true);
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-primary/60 bg-primary px-4 py-2 text-xs font-semibold text-white shadow-glow transition hover:bg-primary/80"
+                >
+                  ➕ Añadir título
+                </button>
               </div>
             )}
-            <button
-              type="button"
-              onClick={() => {
-                setIsUploadOpen(true);
-              }}
-              className="mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-2 text-sm font-semibold text-white transition hover:bg-primary/80"
-            >
-              ➕ Añadir nuevo
-            </button>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 rounded-3xl border border-slate-800 bg-slate-950/70 p-4 shadow-xl sm:p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-1 flex-col gap-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[2fr,1fr]">
+        <div className="flex flex-col gap-4 rounded-[24px] border border-white/10 bg-surface/80 p-4 sm:p-6">
+          <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-slate-200">Buscar en tu biblioteca</label>
             <div className="relative">
               <input
@@ -162,13 +170,13 @@ function LibraryView(): JSX.Element {
                   setSearchTerm(event.target.value);
                 }}
                 placeholder="Título, autor o etiqueta"
-                className="w-full rounded-2xl border border-slate-700 bg-slate-900/70 px-4 py-3 text-sm text-slate-200 transition focus:border-primary focus:outline-none"
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-100 shadow-inner transition focus:border-primary focus:bg-white/[0.06] focus:outline-none"
               />
               <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">⌕</span>
             </div>
           </div>
-          <div className="flex flex-1 flex-col gap-2">
-            <label className="text-sm font-semibold text-slate-200">Filtrar por formato</label>
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-semibold text-slate-200">Filtrar por formato</span>
             <div className="flex flex-wrap gap-2">
               {formatFilters.map((filter) => (
                 <button
@@ -179,8 +187,8 @@ function LibraryView(): JSX.Element {
                   }}
                   className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide transition ${
                     formatFilter === filter.value
-                      ? 'border-primary/80 bg-primary/10 text-primary'
-                      : 'border-slate-700/70 text-slate-300 hover:border-primary/40 hover:text-slate-100'
+                      ? 'border-primary/70 bg-primary/20 text-primary shadow-glow'
+                      : 'border-white/10 bg-white/[0.04] text-slate-300 hover:border-primary/40 hover:text-slate-100'
                   }`}
                 >
                   {filter.label}
@@ -188,44 +196,103 @@ function LibraryView(): JSX.Element {
               ))}
             </div>
           </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
+              <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+              {filteredResources.length} resultados encontrados
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setIsUploadOpen(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-full border border-dashed border-primary/60 px-4 py-2 font-semibold text-primary transition hover:bg-primary/10"
+            >
+              📤 Subir contenido
+            </button>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
-          <span>{filteredResources.length} resultados</span>
-          <button
-            type="button"
-            onClick={() => {
-              setIsUploadOpen(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-full border border-dashed border-primary/60 px-4 py-2 font-semibold text-primary transition hover:bg-primary/10"
-          >
-            📤 Subir contenido
-          </button>
+
+        <div className="flex flex-col gap-3 rounded-[24px] border border-white/10 bg-white/[0.04] p-4 sm:p-6">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Atajos rápidos</span>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <button
+              type="button"
+              onClick={() => {
+                setFormatFilter('images');
+              }}
+              className="group flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-surface/70 px-4 py-3 text-left text-sm text-slate-200 transition hover:border-primary/50 hover:bg-primary/10"
+            >
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">Lectura visual</span>
+                <span className="text-xs text-slate-400">Filtra mangas en formato de imágenes</span>
+              </div>
+              <span className="text-xl transition group-hover:translate-x-1">🖼️</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFormatFilter('pdf');
+              }}
+              className="group flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-surface/70 px-4 py-3 text-left text-sm text-slate-200 transition hover:border-primary/50 hover:bg-primary/10"
+            >
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">Documentos listos</span>
+                <span className="text-xs text-slate-400">Accede rápidamente a tus PDFs</span>
+              </div>
+              <span className="text-xl transition group-hover:translate-x-1">📄</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFormatFilter('epub');
+              }}
+              className="group flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-surface/70 px-4 py-3 text-left text-sm text-slate-200 transition hover:border-primary/50 hover:bg-primary/10"
+            >
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">Modo lectura larga</span>
+                <span className="text-xs text-slate-400">Ideal para novelas EPUB</span>
+              </div>
+              <span className="text-xl transition group-hover:translate-x-1">📚</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="grid flex-1 place-items-center rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-slate-400">
-          Cargando biblioteca...
+        <div className="grid flex-1 gap-6 rounded-[28px] border border-white/10 bg-white/[0.03] p-6 sm:grid-cols-2 sm:p-8 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div
+              key={`skeleton-${index}`}
+              className="flex animate-pulse flex-col gap-4 rounded-3xl border border-white/5 bg-surface/60 p-4"
+            >
+              <div className="h-44 rounded-2xl bg-white/5" />
+              <div className="h-4 w-3/4 rounded-full bg-white/5" />
+              <div className="h-3 w-1/2 rounded-full bg-white/5" />
+              <div className="h-3 w-full rounded-full bg-white/5" />
+              <div className="mt-auto h-9 rounded-full bg-white/5" />
+            </div>
+          ))}
         </div>
       ) : error != null ? (
-        <div className="grid flex-1 place-items-center rounded-3xl border border-rose-900/60 bg-rose-950/50 p-12 text-rose-200">
+        <div className="grid flex-1 place-items-center rounded-[28px] border border-rose-900/60 bg-rose-950/50 p-12 text-rose-200">
           {error}
         </div>
       ) : filteredResources.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-3xl border border-slate-800 bg-slate-950/60 p-12 text-center text-slate-300">
-          <span className="text-4xl">📭</span>
-          <h2 className="text-2xl font-semibold text-white">No encontramos coincidencias</h2>
+        <div className="flex flex-1 flex-col items-center justify-center gap-5 rounded-[28px] border border-white/10 bg-white/[0.04] p-12 text-center text-slate-300">
+          <span className="text-5xl">📭</span>
+          <h2 className="text-2xl font-semibold text-white">Tu biblioteca aún está vacía</h2>
           <p className="max-w-md text-sm text-slate-400">
-            Ajusta tus filtros o sube un nuevo archivo para comenzar tu biblioteca digital.
+            Ajusta los filtros o sube un nuevo archivo para comenzar a construir tu colección personal.
           </p>
           <button
             type="button"
             onClick={() => {
               setIsUploadOpen(true);
             }}
-            className="rounded-full bg-primary px-6 py-2 text-sm font-semibold text-white transition hover:bg-primary/80"
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-primary/80"
           >
-            Añadir el primer título
+            ➕ Añadir el primer título
           </button>
         </div>
       ) : (
@@ -235,6 +302,19 @@ function LibraryView(): JSX.Element {
           ))}
         </div>
       )}
+
+      <button
+        type="button"
+        onClick={() => {
+          setIsUploadOpen(true);
+        }}
+        className={`fixed bottom-24 right-6 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-2xl text-white shadow-glow-accent transition focus:outline-none focus:ring-2 focus:ring-primary/60 lg:hidden ${
+          isUploadOpen ? 'pointer-events-none scale-95 opacity-0' : 'hover:scale-105'
+        }`}
+        aria-label="Subir nuevo contenido"
+      >
+        ➕
+      </button>
 
       <UploadResourceDialog
         open={isUploadOpen}

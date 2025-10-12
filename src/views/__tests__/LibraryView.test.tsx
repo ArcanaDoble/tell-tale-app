@@ -18,7 +18,9 @@ describe('LibraryView', () => {
         author: 'Tester',
         coverUrl: 'https://example.com/cover.jpg',
         tags: ['prueba'],
-        pageCount: 10
+        pageCount: 10,
+        format: 'images',
+        updatedAt: '2024-01-01T00:00:00.000Z'
       }
     ];
 

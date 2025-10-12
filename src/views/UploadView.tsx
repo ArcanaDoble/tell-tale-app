@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { isFirebaseConfigured } from '../firebase/config';
 import { uploadResource } from '../services/libraryService';
 import type { ResourceType } from '../types/library';
+import { extractContentFiles, isArchiveFile } from '../services/archiveService';
 
 interface FormState {
   title: string;
@@ -30,12 +31,13 @@ function UploadView(): JSX.Element {
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [message, setMessage] = useState<string>('');
   const [resourceId, setResourceId] = useState<string | null>(null);
+  const [isProcessingFiles, setIsProcessingFiles] = useState(false);
 
   const acceptContent = useMemo(() => {
     if (formState.resourceType === 'documento') {
       return '.pdf,.epub,.txt,.doc,.docx,.odt';
     }
-    return 'image/*';
+    return 'image/*,.cbz,.cbr,.zip,.rar';
   }, [formState.resourceType]);
 
   const allowMultiple = formState.resourceType !== 'documento';
@@ -49,6 +51,12 @@ function UploadView(): JSX.Element {
     if (!isFirebaseConfigured) {
       setStatus('error');
       setMessage('Configura tus credenciales de Firebase para habilitar las cargas.');
+      return;
+    }
+
+    if (isProcessingFiles) {
+      setStatus('error');
+      setMessage('Espera a que finalice la extracción de archivos antes de subir el recurso.');
       return;
     }
 
@@ -214,7 +222,46 @@ function UploadView(): JSX.Element {
                 required
                 onChange={(event) => {
                   const files = Array.from(event.target.files ?? []);
-                  setContentFiles(files);
+                  setResourceId(null);
+
+                  if (files.length === 0) {
+                    setContentFiles([]);
+                    setStatus('idle');
+                    setMessage('');
+                    return;
+                  }
+
+                  if (files.some(isArchiveFile)) {
+                    setIsProcessingFiles(true);
+                    setStatus('loading');
+                    setMessage('Extrayendo páginas del archivo seleccionado, espera por favor...');
+                    void extractContentFiles(files)
+                      .then((extracted) => {
+                        if (extracted.length === 0) {
+                          throw new Error('No se encontraron imágenes válidas dentro del archivo.');
+                        }
+                        setContentFiles(extracted);
+                        setStatus('success');
+                        setMessage('¡Páginas extraídas correctamente! Revisa y confirma la subida.');
+                      })
+                      .catch((error) => {
+                        console.error('No se pudo extraer el archivo', error);
+                        setContentFiles([]);
+                        setStatus('error');
+                        if (error instanceof Error) {
+                          setMessage(error.message);
+                        } else {
+                          setMessage('No se pudieron extraer las páginas del archivo seleccionado.');
+                        }
+                      })
+                      .finally(() => {
+                        setIsProcessingFiles(false);
+                      });
+                  } else {
+                    setContentFiles(files);
+                    setStatus('idle');
+                    setMessage('');
+                  }
                 }}
                 className="rounded-xl border border-dashed border-slate-700 bg-slate-900 px-4 py-3 text-base text-white focus:border-primary focus:outline-none"
               />
@@ -251,7 +298,7 @@ function UploadView(): JSX.Element {
             <button
               type="submit"
               className="rounded-full bg-primary px-6 py-2 text-sm font-semibold uppercase tracking-wide text-white transition hover:bg-primary/80 disabled:cursor-not-allowed disabled:bg-slate-700"
-              disabled={status === 'loading'}
+              disabled={status === 'loading' || isProcessingFiles}
             >
               {status === 'loading' ? 'Subiendo…' : 'Subir recurso'}
             </button>

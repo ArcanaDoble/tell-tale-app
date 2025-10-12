@@ -6,7 +6,7 @@
     "moduleResolution": "Node",
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    "noEmit": true
+    "outDir": "./.tsbuild/node"
   },
   "include": ["vite.config.ts", "vitest.config.ts"]
 }

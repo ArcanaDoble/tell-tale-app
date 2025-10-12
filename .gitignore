@@ -4,6 +4,8 @@ node_modules
 .env
 .env.local
 .env.*.local
+.tsbuild
 dist
+*.tsbuildinfo
 .DS_Store
 coverage

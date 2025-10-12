@@ -42,6 +42,7 @@ function UploadView(): JSX.Element {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
+    const formElement = event.currentTarget;
     setMessage('');
     setResourceId(null);
 
@@ -81,7 +82,7 @@ function UploadView(): JSX.Element {
       setResourceId(newId);
       setFormState(defaultState);
       setContentFiles([]);
-      (event.currentTarget as HTMLFormElement).reset();
+      formElement?.reset();
     } catch (error) {
       console.error('No se pudo subir el recurso', error);
       setStatus('error');

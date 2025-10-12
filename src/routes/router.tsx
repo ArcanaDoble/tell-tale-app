@@ -1,0 +1,28 @@
+import { createBrowserRouter } from 'react-router-dom';
+import AppLayout from '../views/AppLayout';
+import LibraryView from '../views/LibraryView';
+import DetailsView from '../views/DetailsView';
+import ReaderView from '../views/ReaderView';
+
+export const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <AppLayout />,
+    children: [
+      {
+        index: true,
+        element: <LibraryView />
+      },
+      {
+        path: 'details/:resourceId',
+        element: <DetailsView />
+      },
+      {
+        path: 'read/:resourceId',
+        element: <ReaderView />
+      }
+    ]
+  }
+]);
+
+export default router;

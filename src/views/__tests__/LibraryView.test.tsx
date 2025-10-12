@@ -5,6 +5,10 @@ import type { ResourceMeta } from '../../types/library';
 import LibraryView from '../LibraryView';
 
 describe('LibraryView', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('muestra el listado de recursos desde Firebase', async () => {
     const mockResources: ResourceMeta[] = [
       {
@@ -18,7 +22,7 @@ describe('LibraryView', () => {
       }
     ];
 
-    const spy = vi.spyOn(service, 'getLibrary').mockResolvedValue(mockResources);
+    const spy = jest.spyOn(service, 'getLibrary').mockResolvedValue(mockResources);
 
     render(
       <MemoryRouter>

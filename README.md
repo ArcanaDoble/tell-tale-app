@@ -22,15 +22,16 @@ Crea un archivo `.env` en la raíz con la configuración de Firebase (puedes usa
 cp .env.example .env
 ```
 
-Completa las variables con los valores proporcionados por tu proyecto de Firebase:
+Completa las variables con los valores proporcionados por tu proyecto de Firebase (estos son los valores actuales del proyecto configurado en la app):
 
 ```env
-VITE_FIREBASE_API_KEY=tu-api-key
-VITE_FIREBASE_AUTH_DOMAIN=tu-auth-domain
-VITE_FIREBASE_PROJECT_ID=tu-project-id
-VITE_FIREBASE_STORAGE_BUCKET=tu-storage-bucket
-VITE_FIREBASE_MESSAGING_SENDER_ID=tu-messaging-sender-id
-VITE_FIREBASE_APP_ID=tu-app-id
+VITE_FIREBASE_API_KEY=AIzaSyDMX1EdXlacksOLUhUzYxgT627Ud-nROCU
+VITE_FIREBASE_AUTH_DOMAIN=base-de-datos-noma.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=base-de-datos-noma
+VITE_FIREBASE_STORAGE_BUCKET=base-de-datos-noma.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=485513400814
+VITE_FIREBASE_APP_ID=1:485513400814:web:bc4f7eaeebd1baf3eafeff
+VITE_FIREBASE_MEASUREMENT_ID=G-FFDG8M3N8Q
 ```
 
 ## Scripts disponibles
@@ -57,8 +58,15 @@ src/
 La aplicación consulta la colección `resources` en Firestore. Cada documento debe contener los campos:
 
 - `title`, `description`, `author`, `coverUrl`, `tags` (array) y `pages` (array de URLs de imágenes ordenadas).
+- `resourceType` (`manga`, `libro` o `documento`) para clasificar el contenido.
+- `downloadUrl` (opcional) para documentos descargables y `pageCount` para controlar el progreso.
 
 Si la conexión con Firebase falla, se mostrará un recurso de demostración incluido en la app para mantener la experiencia.
+
+## Carga de archivos
+
+Desde la ruta `/upload` puedes subir nuevos mangas, libros ilustrados o documentos en PDF/EPUB. Los archivos se almacenan en
+Firebase Storage y se registran automáticamente en Firestore, quedando disponibles en la biblioteca.
 
 ## Estilos y responsive
 

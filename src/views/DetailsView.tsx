@@ -24,6 +24,21 @@ function DetailsView(): JSX.Element {
   }, [resourceId]);
 
   const tags = useMemo(() => resource?.tags ?? [], [resource]);
+  const typeLabel = useMemo(() => {
+    if (resource == null) {
+      return '';
+    }
+    switch (resource.resourceType) {
+      case 'manga':
+        return 'Manga';
+      case 'libro':
+        return 'Libro';
+      case 'documento':
+        return 'Documento';
+      default:
+        return 'Recurso';
+    }
+  }, [resource]);
 
   if (isLoading) {
     return (
@@ -49,6 +64,9 @@ function DetailsView(): JSX.Element {
         </div>
         <div className="flex flex-1 flex-col gap-5">
           <header className="flex flex-col gap-2">
+            <span className="w-fit rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+              {typeLabel}
+            </span>
             <h1 className="text-3xl font-bold text-white sm:text-4xl">{resource.title}</h1>
             <p className="text-slate-400">Por {resource.author}</p>
           </header>
@@ -64,12 +82,23 @@ function DetailsView(): JSX.Element {
             ))}
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link
-              to={`/read/${resource.id}`}
-              className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary/80"
-            >
-              Abrir lector
-            </Link>
+            {resource.hasReader ? (
+              <Link
+                to={`/read/${resource.id}`}
+                className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary/80"
+              >
+                Abrir lector
+              </Link>
+            ) : resource.downloadUrl != null ? (
+              <a
+                href={resource.downloadUrl}
+                className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary/80"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Descargar archivo
+              </a>
+            ) : null}
             <BookmarkButton resourceId={resource.id} />
           </div>
         </div>
@@ -77,7 +106,11 @@ function DetailsView(): JSX.Element {
       <div className="grid gap-4 rounded-3xl border border-slate-800 bg-slate-950/40 p-6 text-sm text-slate-300 sm:grid-cols-2">
         <div className="rounded-2xl border border-slate-800/60 bg-slate-900/60 p-4">
           <h2 className="text-lg font-semibold text-white">Progreso</h2>
-          <p>{resource.pageCount} páginas disponibles.</p>
+          {resource.hasReader ? (
+            <p>{resource.pageCount} páginas disponibles.</p>
+          ) : (
+            <p>El recurso no cuenta con lector integrado. Descarga el archivo para consultarlo.</p>
+          )}
         </div>
         <div className="rounded-2xl border border-slate-800/60 bg-slate-900/60 p-4">
           <h2 className="text-lg font-semibold text-white">Indicaciones</h2>

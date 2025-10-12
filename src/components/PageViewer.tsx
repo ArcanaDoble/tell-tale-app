@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react';
 
 interface PageViewerProps {
   pages: string[];
@@ -11,6 +12,17 @@ const MAX_ZOOM = 2;
 function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [zoom, setZoom] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const viewerRef = useRef<HTMLDivElement | null>(null);
+  const pointerState = useRef({
+    active: new Map<number, { x: number; y: number }>(),
+    startX: 0,
+    startY: 0,
+    scrollLeft: 0,
+    scrollTop: 0,
+    lastDistance: null as number | null
+  });
 
   const totalPages = pages.length;
   const clampedPage = useMemo(() => Math.min(Math.max(currentPage, 0), totalPages - 1), [currentPage, totalPages]);
@@ -27,12 +39,138 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
     goToPage(clampedPage - 1);
   };
 
-  const handleZoom = (delta: number): void => {
+  const handleZoom = useCallback((delta: number) => {
     setZoom((current) => {
       const next = Math.min(Math.max(current + delta, MIN_ZOOM), MAX_ZOOM);
       return Math.round(next * 100) / 100;
     });
+  }, []);
+
+  const handleWheel = useCallback(
+    (event: ReactWheelEvent<HTMLDivElement>) => {
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault();
+        const delta = event.deltaY > 0 ? -0.1 : 0.1;
+        handleZoom(delta);
+      }
+    },
+    [handleZoom]
+  );
+
+  const updatePointer = (pointerId: number, position: { x: number; y: number }): void => {
+    pointerState.current.active.set(pointerId, position);
   };
+
+  const removePointer = (pointerId: number): void => {
+    pointerState.current.active.delete(pointerId);
+    const remainingCount = pointerState.current.active.size;
+
+    if (remainingCount >= 2) {
+      const [first, second] = Array.from(pointerState.current.active.values());
+      pointerState.current.lastDistance = Math.hypot(first.x - second.x, first.y - second.y);
+      setIsDragging(false);
+      return;
+    }
+
+    pointerState.current.lastDistance = null;
+
+    if (remainingCount === 1) {
+      const [remaining] = Array.from(pointerState.current.active.values());
+      pointerState.current.startX = remaining.x;
+      pointerState.current.startY = remaining.y;
+      const container = viewerRef.current;
+      if (container != null) {
+        pointerState.current.scrollLeft = container.scrollLeft;
+        pointerState.current.scrollTop = container.scrollTop;
+      }
+      setIsDragging(true);
+      return;
+    }
+
+    setIsDragging(false);
+  };
+
+  const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+
+    const container = viewerRef.current;
+    if (container == null) {
+      return;
+    }
+
+    container.setPointerCapture(event.pointerId);
+    updatePointer(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    if (pointerState.current.active.size === 1) {
+      pointerState.current.startX = event.clientX;
+      pointerState.current.startY = event.clientY;
+      pointerState.current.scrollLeft = container.scrollLeft;
+      pointerState.current.scrollTop = container.scrollTop;
+      pointerState.current.lastDistance = null;
+      setIsDragging(true);
+    } else if (pointerState.current.active.size === 2) {
+      const [first, second] = Array.from(pointerState.current.active.values());
+      pointerState.current.lastDistance = Math.hypot(first.x - second.x, first.y - second.y);
+      setIsDragging(false);
+    }
+
+    if (event.pointerType === 'touch') {
+      event.preventDefault();
+    }
+  }, []);
+
+  const handlePointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const container = viewerRef.current;
+      if (container == null || !pointerState.current.active.has(event.pointerId)) {
+        return;
+      }
+
+      updatePointer(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (pointerState.current.active.size >= 2) {
+        event.preventDefault();
+        const [first, second] = Array.from(pointerState.current.active.values());
+        const distance = Math.hypot(first.x - second.x, first.y - second.y);
+        const previous = pointerState.current.lastDistance;
+        if (previous != null) {
+          const delta = (distance - previous) / 250;
+          if (delta !== 0) {
+            handleZoom(delta);
+          }
+        }
+        pointerState.current.lastDistance = distance;
+        return;
+      }
+
+      if (event.pointerType === 'mouse' && event.buttons !== 1) {
+        return;
+      }
+
+      event.preventDefault();
+      const deltaX = event.clientX - pointerState.current.startX;
+      const deltaY = event.clientY - pointerState.current.startY;
+      container.scrollLeft = pointerState.current.scrollLeft - deltaX;
+      container.scrollTop = pointerState.current.scrollTop - deltaY;
+      pointerState.current.scrollLeft = container.scrollLeft;
+      pointerState.current.scrollTop = container.scrollTop;
+      pointerState.current.startX = event.clientX;
+      pointerState.current.startY = event.clientY;
+    },
+    [handleZoom]
+  );
+
+  const handlePointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    const container = viewerRef.current;
+    if (container != null && container.hasPointerCapture(event.pointerId)) {
+      container.releasePointerCapture(event.pointerId);
+    }
+    removePointer(event.pointerId);
+  }, []);
+
+  const zoomPercent = Math.round(zoom * 100);
 
   return (
     <section className="flex w-full flex-col gap-4">
@@ -75,7 +213,7 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
             >
               -
             </button>
-            <span className="text-xs font-semibold uppercase tracking-wide">{Math.round(zoom * 100)}%</span>
+            <span className="text-xs font-semibold uppercase tracking-wide">{zoomPercent}%</span>
             <button
               type="button"
               className="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary hover:text-primary"
@@ -89,7 +227,16 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
         </div>
         <div className="flex justify-center">
           <div
-            className="max-h-[70vh] w-full overflow-hidden rounded-xl border border-slate-800 bg-black/60 p-2 sm:max-h-[75vh] lg:max-h-[80vh]"
+            ref={viewerRef}
+            className={`max-h-[70vh] w-full overflow-auto rounded-xl border border-slate-800 bg-black/60 p-2 sm:max-h-[75vh] lg:max-h-[80vh] ${
+              isDragging ? 'cursor-grabbing' : 'cursor-grab'
+            } touch-none`}
+            onWheel={handleWheel}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            onPointerLeave={handlePointerUp}
           >
             {totalPages === 0 ? (
               <div className="flex h-full items-center justify-center text-slate-400">Sin páginas disponibles</div>
@@ -98,8 +245,9 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
                 key={pages[clampedPage]}
                 src={pages[clampedPage]}
                 alt={`Página ${clampedPage + 1}`}
-                className="mx-auto max-h-full w-full origin-top object-contain transition-transform duration-300"
-                style={{ transform: `scale(${zoom})` }}
+                className="mx-auto block h-auto max-h-none select-none transition-[width] duration-150 ease-out"
+                style={{ width: `${zoomPercent}%`, minWidth: `${zoomPercent}%`, maxWidth: 'none' }}
+                draggable={false}
               />
             )}
           </div>

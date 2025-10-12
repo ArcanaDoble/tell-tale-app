@@ -1,6 +1,6 @@
 # Tell Tale Reader
 
-Aplicación web construida con React + Vite para explorar y leer mangas/libros almacenados en Firebase. Incluye vistas de biblioteca, detalles y lector con visor de páginas, controles de zoom/paginación y marcadores locales.
+Aplicación web construida con React (Create React App) para explorar y leer mangas/libros almacenados en Firebase. Incluye vistas de biblioteca, detalles y lector con visor de páginas, controles de zoom/paginación y marcadores locales.
 
 ## Requisitos
 
@@ -25,20 +25,19 @@ cp .env.example .env
 Completa las variables con los valores proporcionados por tu proyecto de Firebase:
 
 ```env
-VITE_FIREBASE_API_KEY=tu-api-key
-VITE_FIREBASE_AUTH_DOMAIN=tu-auth-domain
-VITE_FIREBASE_PROJECT_ID=tu-project-id
-VITE_FIREBASE_STORAGE_BUCKET=tu-storage-bucket
-VITE_FIREBASE_MESSAGING_SENDER_ID=tu-messaging-sender-id
-VITE_FIREBASE_APP_ID=tu-app-id
+REACT_APP_FIREBASE_API_KEY=tu-api-key
+REACT_APP_FIREBASE_AUTH_DOMAIN=tu-auth-domain
+REACT_APP_FIREBASE_PROJECT_ID=tu-project-id
+REACT_APP_FIREBASE_STORAGE_BUCKET=tu-storage-bucket
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=tu-messaging-sender-id
+REACT_APP_FIREBASE_APP_ID=tu-app-id
 ```
 
 ## Scripts disponibles
 
-- `npm run dev` – Inicia el servidor de desarrollo en `http://localhost:5173`.
+- `npm start` – Inicia el servidor de desarrollo en `http://localhost:3000`.
 - `npm run build` – Genera la build de producción.
-- `npm run preview` – Sirve la build generada.
-- `npm run test` – Ejecuta las pruebas con Vitest y Testing Library.
+- `npm test` – Ejecuta las pruebas con Jest y Testing Library.
 - `npm run lint` – Ejecuta ESLint sobre el proyecto.
 
 ## Estructura principal

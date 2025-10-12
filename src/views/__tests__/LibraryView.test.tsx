@@ -5,6 +5,10 @@ import type { ResourceMeta } from '../../types/library';
 import LibraryView from '../LibraryView';
 
 describe('LibraryView', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('muestra el listado de recursos desde Firebase', async () => {
     const mockResources: ResourceMeta[] = [
       {
@@ -14,11 +18,13 @@ describe('LibraryView', () => {
         author: 'Tester',
         coverUrl: 'https://example.com/cover.jpg',
         tags: ['prueba'],
-        pageCount: 10
+        pageCount: 10,
+        format: 'images',
+        updatedAt: '2024-01-01T00:00:00.000Z'
       }
     ];
 
-    const spy = vi.spyOn(service, 'getLibrary').mockResolvedValue(mockResources);
+    const spy = jest.spyOn(service, 'getLibrary').mockResolvedValue(mockResources);
 
     render(
       <MemoryRouter>

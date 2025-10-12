@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type TouchEvent } from 'react';
 
 interface PageViewerProps {
   pages: string[];
@@ -11,6 +11,7 @@ const MAX_ZOOM = 2;
 function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [zoom, setZoom] = useState(1);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   const totalPages = pages.length;
   const clampedPage = useMemo(() => Math.min(Math.max(currentPage, 0), totalPages - 1), [currentPage, totalPages]);
@@ -34,51 +35,71 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
     });
   };
 
+  const handleTouchStart = (event: TouchEvent<HTMLDivElement>): void => {
+    setTouchStartX(event.touches[0]?.clientX ?? null);
+  };
+
+  const handleTouchEnd = (event: TouchEvent<HTMLDivElement>): void => {
+    if (touchStartX == null) {
+      return;
+    }
+    const deltaX = event.changedTouches[0]?.clientX ?? 0;
+    const difference = deltaX - touchStartX;
+    if (Math.abs(difference) > 50) {
+      if (difference < 0) {
+        handleNext();
+      } else {
+        handlePrev();
+      }
+    }
+    setTouchStartX(null);
+  };
+
   return (
     <section className="flex w-full flex-col gap-4">
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 shadow-lg">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm text-slate-300">
+      <div className="flex flex-col gap-4 rounded-[26px] border border-white/10 bg-white/[0.04] p-4 shadow-lg">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-wide text-slate-300">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:border-slate-800 disabled:text-slate-600"
+              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 font-semibold text-slate-200 transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:border-white/5 disabled:text-slate-600"
               onClick={handlePrev}
               disabled={clampedPage === 0}
             >
-              Página anterior
+              ← Anterior
             </button>
             <button
               type="button"
-              className="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:border-slate-800 disabled:text-slate-600"
+              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 font-semibold text-slate-200 transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:border-white/5 disabled:text-slate-600"
               onClick={handleNext}
               disabled={clampedPage >= totalPages - 1}
             >
-              Página siguiente
+              Siguiente →
             </button>
           </div>
-          <div className="flex items-center gap-2 text-sm text-slate-300">
+          <div className="flex items-center gap-2 text-slate-200">
             <button
               type="button"
-              className="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary hover:text-primary"
+              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary/60 hover:text-primary"
               onClick={() => {
                 setZoom(1);
               }}
             >
-              Reset
+              Reset zoom
             </button>
             <button
               type="button"
-              className="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary hover:text-primary"
+              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary/60 hover:text-primary"
               onClick={() => {
                 handleZoom(-0.1);
               }}
             >
               -
             </button>
-            <span className="text-xs font-semibold uppercase tracking-wide">{Math.round(zoom * 100)}%</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-300">{Math.round(zoom * 100)}%</span>
             <button
               type="button"
-              className="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary hover:text-primary"
+              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary/60 hover:text-primary"
               onClick={() => {
                 handleZoom(0.1);
               }}
@@ -87,9 +108,26 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
             </button>
           </div>
         </div>
+        <div className="flex items-center gap-3 text-xs text-slate-400">
+          <span>Página {clampedPage + 1} de {totalPages}</span>
+          {totalPages > 1 && (
+            <input
+              type="range"
+              min={0}
+              max={Math.max(totalPages - 1, 0)}
+              value={clampedPage}
+              onChange={(event) => {
+                goToPage(Number(event.target.value));
+              }}
+              className="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-slate-800 accent-primary"
+            />
+          )}
+        </div>
         <div className="flex justify-center">
           <div
-            className="max-h-[70vh] w-full overflow-hidden rounded-xl border border-slate-800 bg-black/60 p-2 sm:max-h-[75vh] lg:max-h-[80vh]"
+            className="max-h-[70vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-black/70 p-2 sm:max-h-[75vh] lg:max-h-[80vh]"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           >
             {totalPages === 0 ? (
               <div className="flex h-full items-center justify-center text-slate-400">Sin páginas disponibles</div>
@@ -104,26 +142,30 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
             )}
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-wide text-slate-400">
-          <span>
-            Página {clampedPage + 1} de {totalPages}
-          </span>
-          <div className="flex flex-wrap gap-2">
-            {pages.map((_, index) => (
-              <button
-                key={`page-${index}`}
-                type="button"
-                className={`h-2 w-6 rounded-full transition ${
-                  index === clampedPage ? 'bg-primary' : 'bg-slate-700 hover:bg-primary/50'
-                }`}
-                onClick={() => {
-                  goToPage(index);
-                }}
-                aria-label={`Ir a la página ${index + 1}`}
-              />
-            ))}
+        {totalPages > 0 && (
+          <div className="flex flex-col gap-3">
+            <span className="text-xs uppercase tracking-wide text-slate-400">Miniaturas</span>
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {pages.map((page, index) => (
+                <button
+                  key={`page-${index}`}
+                  type="button"
+                  className={`relative h-20 w-14 flex-shrink-0 overflow-hidden rounded-lg border transition ${
+                    index === clampedPage
+                      ? 'border-primary/80 ring-2 ring-primary/50'
+                      : 'border-white/10 hover:border-primary/50'
+                  }`}
+                  onClick={() => {
+                    goToPage(index);
+                  }}
+                  aria-label={`Ir a la página ${index + 1}`}
+                >
+                  <img src={page} alt={`Miniatura ${index + 1}`} className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );

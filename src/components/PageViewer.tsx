@@ -8,6 +8,7 @@ interface PageViewerProps {
 
 const MIN_ZOOM = 0.75;
 const MAX_ZOOM = 2;
+const MIN_FIT_ZOOM_DESKTOP = 0.1;
 
 function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -122,18 +123,33 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
       return 1;
     }
 
-    const { clientWidth } = container;
-    const naturalWidth = image.naturalWidth;
-    if (naturalWidth === 0) {
+    const { clientWidth, clientHeight } = container;
+    const { naturalWidth, naturalHeight } = image;
+    if (naturalWidth === 0 || naturalHeight === 0) {
       return 1;
     }
 
     const widthRatio = clientWidth / naturalWidth;
+    const heightRatio = clientHeight / naturalHeight;
     const isMobileViewport =
       typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
-    const desiredZoom = isMobileViewport ? Math.max(widthRatio, 1) : widthRatio;
-    const clamped = Math.min(Math.max(desiredZoom, MIN_ZOOM), MAX_ZOOM);
-    return Math.round(clamped * 100) / 100;
+
+    if (isMobileViewport) {
+      const mobileZoom = Math.max(widthRatio, 1);
+      const limitedMobileZoom = Math.min(Math.max(mobileZoom, MIN_ZOOM), MAX_ZOOM);
+      return Math.round(limitedMobileZoom * 100) / 100;
+    }
+
+    const fitByWidth = Math.min(widthRatio, 1);
+    const fitByHeight = Math.min(heightRatio, 1);
+    let desiredZoom = Math.min(fitByWidth, fitByHeight);
+
+    if (fitByWidth > desiredZoom && desiredZoom < 0.45) {
+      desiredZoom = fitByWidth;
+    }
+
+    const limitedZoom = Math.min(Math.max(desiredZoom, MIN_FIT_ZOOM_DESKTOP), MAX_ZOOM);
+    return Math.round(limitedZoom * 100) / 100;
   }, []);
 
   const fitContentToScreen = useCallback(() => {
@@ -345,15 +361,19 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   const zoomPercent = Math.round(zoom * 100);
 
   const imageStyle = useMemo<CSSProperties>(() => {
-    const width = `${zoomPercent}%`;
+    const widthValue = zoom * 100;
+    const width = `${widthValue}%`;
 
     if (zoomPercent <= 100) {
       return {
         width,
         minWidth: width,
-        maxWidth: 'none',
-        height: '100%',
-        objectFit: 'contain'
+        maxWidth: width,
+        height: 'auto',
+        maxHeight: '100%',
+        objectFit: 'contain',
+        marginLeft: 'auto',
+        marginRight: 'auto'
       };
     }
 
@@ -361,9 +381,11 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
       width,
       minWidth: width,
       maxWidth: 'none',
-      height: 'auto'
+      height: 'auto',
+      marginLeft: 'auto',
+      marginRight: 'auto'
     };
-  }, [zoomPercent]);
+  }, [zoom, zoomPercent]);
 
   useEffect(() => {
     if (hasUserAdjustedZoomRef.current) {

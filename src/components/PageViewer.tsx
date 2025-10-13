@@ -16,6 +16,10 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   const [controlsVisible, setControlsVisible] = useState(false);
 
   const viewerRef = useRef<HTMLDivElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const hasUserAdjustedZoomRef = useRef(false);
+  const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
+  const zoomRef = useRef(zoom);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pointerState = useRef({
     active: new Map<number, { x: number; y: number }>(),
@@ -50,7 +54,13 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   const clampedPage = useMemo(() => Math.min(Math.max(currentPage, 0), totalPages - 1), [currentPage, totalPages]);
 
   const goToPage = (page: number): void => {
+    hasUserAdjustedZoomRef.current = false;
     setCurrentPage(Math.min(Math.max(page, 0), totalPages - 1));
+    const container = viewerRef.current;
+    if (container != null) {
+      container.scrollLeft = 0;
+      container.scrollTop = 0;
+    }
   };
 
   useEffect(() => {
@@ -69,12 +79,72 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
     goToPage(clampedPage - 1);
   };
 
-  const handleZoom = useCallback((delta: number) => {
+  const handleZoom = useCallback((delta: number, focusPoint?: { x: number; y: number }) => {
+    const container = viewerRef.current;
     setZoom((current) => {
       const next = Math.min(Math.max(current + delta, MIN_ZOOM), MAX_ZOOM);
-      return Math.round(next * 100) / 100;
+      const rounded = Math.round(next * 100) / 100;
+
+      if (container != null && focusPoint != null) {
+        const rect = container.getBoundingClientRect();
+        const offsetX = focusPoint.x - rect.left + container.scrollLeft;
+        const offsetY = focusPoint.y - rect.top + container.scrollTop;
+        const scale = rounded / current;
+        const nextScrollLeft = offsetX * scale - (focusPoint.x - rect.left);
+        const nextScrollTop = offsetY * scale - (focusPoint.y - rect.top);
+
+        requestAnimationFrame(() => {
+          container.scrollTo({ left: nextScrollLeft, top: nextScrollTop });
+        });
+      }
+
+      hasUserAdjustedZoomRef.current = true;
+      zoomRef.current = rounded;
+      return rounded;
     });
   }, []);
+
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+
+  const resetUserZoom = useCallback((value: number) => {
+    const rounded = Math.round(value * 100) / 100;
+    hasUserAdjustedZoomRef.current = false;
+    zoomRef.current = rounded;
+    setZoom(rounded);
+  }, []);
+
+  const calculateFitZoom = useCallback(() => {
+    const container = viewerRef.current;
+    const image = imageRef.current;
+    if (container == null || image == null) {
+      return 1;
+    }
+
+    const { clientWidth } = container;
+    const naturalWidth = image.naturalWidth;
+    if (naturalWidth === 0) {
+      return 1;
+    }
+
+    const widthRatio = clientWidth / naturalWidth;
+    const isMobileViewport =
+      typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
+    const desiredZoom = isMobileViewport ? Math.max(widthRatio, 1) : widthRatio;
+    const clamped = Math.min(Math.max(desiredZoom, MIN_ZOOM), MAX_ZOOM);
+    return Math.round(clamped * 100) / 100;
+  }, []);
+
+  const fitContentToScreen = useCallback(() => {
+    const container = viewerRef.current;
+    if (container == null) {
+      return;
+    }
+    const fittedZoom = calculateFitZoom();
+    resetUserZoom(fittedZoom);
+    container.scrollTo({ left: 0, top: 0 });
+  }, [calculateFitZoom, resetUserZoom]);
 
   const handleWheel = useCallback(
     (event: WheelEvent) => {
@@ -82,9 +152,23 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
       event.stopPropagation();
       showControls();
       const delta = event.deltaY > 0 ? -0.1 : 0.1;
-      handleZoom(delta);
+      handleZoom(delta, { x: event.clientX, y: event.clientY });
     },
     [handleZoom, showControls]
+  );
+
+  const zoomByStep = useCallback(
+    (delta: number) => {
+      const container = viewerRef.current;
+      if (container == null) {
+        handleZoom(delta);
+        return;
+      }
+
+      const rect = container.getBoundingClientRect();
+      handleZoom(delta, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+    },
+    [handleZoom]
   );
 
   useEffect(() => {
@@ -174,9 +258,30 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
 
       if (event.pointerType === 'touch') {
         event.preventDefault();
+
+        if (pointerState.current.active.size === 1) {
+          const now = event.timeStamp;
+          if (lastTapRef.current != null && now - lastTapRef.current.time < 300) {
+            const distance = Math.hypot(lastTapRef.current.x - event.clientX, lastTapRef.current.y - event.clientY);
+            if (distance < 30) {
+              const focusPoint = { x: event.clientX, y: event.clientY };
+              if (zoomRef.current > 1) {
+                const fitted = calculateFitZoom();
+                resetUserZoom(fitted);
+                container.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
+              } else {
+                const nextZoom = Math.min(zoomRef.current + 0.4, MAX_ZOOM);
+                handleZoom(nextZoom - zoomRef.current, focusPoint);
+              }
+            }
+            lastTapRef.current = null;
+          } else {
+            lastTapRef.current = { time: now, x: event.clientX, y: event.clientY };
+          }
+        }
       }
     },
-    [showControls, updatePointer]
+    [calculateFitZoom, handleZoom, resetUserZoom, showControls, updatePointer]
   );
 
   const handlePointerMove = useCallback(
@@ -197,7 +302,7 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
         if (previous != null) {
           const delta = (distance - previous) / 250;
           if (delta !== 0) {
-            handleZoom(delta);
+            handleZoom(delta, { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 });
           }
         }
         pointerState.current.lastDistance = distance;
@@ -260,6 +365,46 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
     };
   }, [zoomPercent]);
 
+  useEffect(() => {
+    if (hasUserAdjustedZoomRef.current) {
+      return;
+    }
+
+    const container = viewerRef.current;
+    if (container == null) {
+      return;
+    }
+
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      if (!hasUserAdjustedZoomRef.current) {
+        fitContentToScreen();
+      }
+    });
+
+    observer.observe(container);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [fitContentToScreen]);
+
+  const handleImageLoad = useCallback(() => {
+    if (!hasUserAdjustedZoomRef.current) {
+      fitContentToScreen();
+    }
+  }, [fitContentToScreen]);
+
+  useEffect(() => {
+    const image = imageRef.current;
+    if (image != null && image.complete) {
+      handleImageLoad();
+    }
+  }, [clampedPage, handleImageLoad]);
+
   return (
     <section className="flex min-h-[100svh] w-full flex-col bg-black sm:min-h-0 sm:bg-transparent sm:gap-4">
       <div className="flex flex-1 flex-col gap-0 bg-black sm:flex-none sm:gap-3 sm:rounded-2xl sm:border sm:border-slate-800 sm:bg-slate-950/60 sm:p-4 sm:shadow-lg">
@@ -287,16 +432,17 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
               type="button"
               className="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary hover:text-primary"
               onClick={() => {
-                setZoom(1);
+                fitContentToScreen();
               }}
+              aria-label="Ajustar la página a la pantalla"
             >
-              Reset
+              Ajustar vista
             </button>
             <button
               type="button"
               className="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary hover:text-primary"
               onClick={() => {
-                handleZoom(-0.1);
+                zoomByStep(-0.1);
               }}
             >
               -
@@ -306,7 +452,7 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
               type="button"
               className="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide transition hover:border-primary hover:text-primary"
               onClick={() => {
-                handleZoom(0.1);
+                zoomByStep(0.1);
               }}
             >
               +
@@ -330,12 +476,14 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
               <div className="flex h-full items-center justify-center text-slate-400">Sin páginas disponibles</div>
             ) : (
               <img
+                ref={imageRef}
                 key={pages[clampedPage]}
                 src={pages[clampedPage]}
                 alt={`Página ${clampedPage + 1}`}
                 className="block h-full w-full select-none transition-[width] duration-150 ease-out sm:h-auto sm:w-auto"
                 style={imageStyle}
                 draggable={false}
+                onLoad={handleImageLoad}
               />
             )}
           </div>
@@ -371,8 +519,50 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
                   ›
                 </button>
               ) : null}
-              <div className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center justify-center rounded-full bg-black/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white sm:text-[0.65rem]">
+              <div className="pointer-events-none absolute bottom-4 left-1/2 hidden -translate-x-1/2 items-center justify-center rounded-full bg-black/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white sm:flex sm:text-[0.65rem]">
                 Página {clampedPage + 1} de {totalPages}
+              </div>
+              <div
+                className={`absolute inset-x-4 bottom-4 flex flex-col gap-3 rounded-2xl bg-black/70 p-3 text-white shadow-lg backdrop-blur transition-opacity duration-200 sm:hidden ${
+                  controlsVisible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+                }`}
+              >
+                <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide">
+                  <span>Página {clampedPage + 1}</span>
+                  <span>{zoomPercent}%</span>
+                </div>
+                <div className="flex items-center justify-center gap-4">
+                  <button
+                    type="button"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10 text-lg font-bold transition active:scale-95"
+                    onClick={() => {
+                      zoomByStep(-0.15);
+                    }}
+                    aria-label="Reducir zoom"
+                  >
+                    −
+                  </button>
+                  <button
+                    type="button"
+                    className="flex min-w-[96px] items-center justify-center rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide transition active:scale-95"
+                    onClick={() => {
+                      fitContentToScreen();
+                    }}
+                    aria-label="Ajustar a la pantalla"
+                  >
+                    Ajustar
+                  </button>
+                  <button
+                    type="button"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10 text-lg font-bold transition active:scale-95"
+                    onClick={() => {
+                      zoomByStep(0.15);
+                    }}
+                    aria-label="Ampliar zoom"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             </div>
           ) : null}

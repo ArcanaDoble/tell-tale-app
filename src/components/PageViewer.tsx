@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   CSSProperties,
   PointerEvent as ReactPointerEvent,
@@ -17,8 +17,10 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(false);
 
   const viewerRef = useRef<HTMLDivElement | null>(null);
+  const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pointerState = useRef({
     active: new Map<number, { x: number; y: number }>(),
     startX: 0,
@@ -28,12 +30,40 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
     lastDistance: null as number | null
   });
 
+  const clearHideControls = useCallback(() => {
+    if (controlsTimeoutRef.current != null) {
+      clearTimeout(controlsTimeoutRef.current);
+      controlsTimeoutRef.current = null;
+    }
+  }, []);
+
+  const scheduleHideControls = useCallback(() => {
+    clearHideControls();
+    controlsTimeoutRef.current = setTimeout(() => {
+      setControlsVisible(false);
+      controlsTimeoutRef.current = null;
+    }, 2500);
+  }, [clearHideControls]);
+
+  const showControls = useCallback(() => {
+    setControlsVisible(true);
+    scheduleHideControls();
+  }, [scheduleHideControls]);
+
   const totalPages = pages.length;
   const clampedPage = useMemo(() => Math.min(Math.max(currentPage, 0), totalPages - 1), [currentPage, totalPages]);
 
   const goToPage = (page: number): void => {
     setCurrentPage(Math.min(Math.max(page, 0), totalPages - 1));
   };
+
+  useEffect(() => {
+    showControls();
+
+    return () => {
+      clearHideControls();
+    };
+  }, [clearHideControls, showControls]);
 
   const handleNext = (): void => {
     goToPage(clampedPage + 1);
@@ -52,78 +82,88 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
 
   const handleWheel = useCallback(
     (event: ReactWheelEvent<HTMLDivElement>) => {
-      if (event.ctrlKey || event.metaKey) {
-        event.preventDefault();
-        const delta = event.deltaY > 0 ? -0.1 : 0.1;
-        handleZoom(delta);
-      }
+      event.preventDefault();
+      showControls();
+      const delta = event.deltaY > 0 ? -0.1 : 0.1;
+      handleZoom(delta);
     },
-    [handleZoom]
+    [handleZoom, showControls]
   );
 
-  const updatePointer = (pointerId: number, position: { x: number; y: number }): void => {
+  const updatePointer = useCallback((pointerId: number, position: { x: number; y: number }) => {
     pointerState.current.active.set(pointerId, position);
-  };
+  }, []);
 
-  const removePointer = (pointerId: number): void => {
-    pointerState.current.active.delete(pointerId);
-    const remainingCount = pointerState.current.active.size;
+  const removePointer = useCallback(
+    (pointerId: number) => {
+      pointerState.current.active.delete(pointerId);
+      const remainingCount = pointerState.current.active.size;
 
-    if (remainingCount >= 2) {
-      const [first, second] = Array.from(pointerState.current.active.values());
-      pointerState.current.lastDistance = Math.hypot(first.x - second.x, first.y - second.y);
+      if (remainingCount >= 2) {
+        const [first, second] = Array.from(pointerState.current.active.values());
+        pointerState.current.lastDistance = Math.hypot(first.x - second.x, first.y - second.y);
+        setIsDragging(false);
+        showControls();
+        return;
+      }
+
+      pointerState.current.lastDistance = null;
+
+      if (remainingCount === 1) {
+        const [remaining] = Array.from(pointerState.current.active.values());
+        pointerState.current.startX = remaining.x;
+        pointerState.current.startY = remaining.y;
+        const container = viewerRef.current;
+        if (container != null) {
+          pointerState.current.scrollLeft = container.scrollLeft;
+          pointerState.current.scrollTop = container.scrollTop;
+        }
+        setIsDragging(true);
+        showControls();
+        return;
+      }
+
       setIsDragging(false);
-      return;
-    }
+      scheduleHideControls();
+    },
+    [scheduleHideControls, showControls]
+  );
 
-    pointerState.current.lastDistance = null;
+  const handlePointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      showControls();
 
-    if (remainingCount === 1) {
-      const [remaining] = Array.from(pointerState.current.active.values());
-      pointerState.current.startX = remaining.x;
-      pointerState.current.startY = remaining.y;
+      if (event.pointerType === 'mouse' && event.button !== 0) {
+        return;
+      }
+
       const container = viewerRef.current;
-      if (container != null) {
+      if (container == null) {
+        return;
+      }
+
+      container.setPointerCapture(event.pointerId);
+      updatePointer(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (pointerState.current.active.size === 1) {
+        pointerState.current.startX = event.clientX;
+        pointerState.current.startY = event.clientY;
         pointerState.current.scrollLeft = container.scrollLeft;
         pointerState.current.scrollTop = container.scrollTop;
+        pointerState.current.lastDistance = null;
+        setIsDragging(true);
+      } else if (pointerState.current.active.size === 2) {
+        const [first, second] = Array.from(pointerState.current.active.values());
+        pointerState.current.lastDistance = Math.hypot(first.x - second.x, first.y - second.y);
+        setIsDragging(false);
       }
-      setIsDragging(true);
-      return;
-    }
 
-    setIsDragging(false);
-  };
-
-  const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === 'mouse' && event.button !== 0) {
-      return;
-    }
-
-    const container = viewerRef.current;
-    if (container == null) {
-      return;
-    }
-
-    container.setPointerCapture(event.pointerId);
-    updatePointer(event.pointerId, { x: event.clientX, y: event.clientY });
-
-    if (pointerState.current.active.size === 1) {
-      pointerState.current.startX = event.clientX;
-      pointerState.current.startY = event.clientY;
-      pointerState.current.scrollLeft = container.scrollLeft;
-      pointerState.current.scrollTop = container.scrollTop;
-      pointerState.current.lastDistance = null;
-      setIsDragging(true);
-    } else if (pointerState.current.active.size === 2) {
-      const [first, second] = Array.from(pointerState.current.active.values());
-      pointerState.current.lastDistance = Math.hypot(first.x - second.x, first.y - second.y);
-      setIsDragging(false);
-    }
-
-    if (event.pointerType === 'touch') {
-      event.preventDefault();
-    }
-  }, []);
+      if (event.pointerType === 'touch') {
+        event.preventDefault();
+      }
+    },
+    [showControls, updatePointer]
+  );
 
   const handlePointerMove = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -132,6 +172,7 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
         return;
       }
 
+      showControls();
       updatePointer(event.pointerId, { x: event.clientX, y: event.clientY });
 
       if (pointerState.current.active.size >= 2) {
@@ -163,16 +204,24 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
       pointerState.current.startX = event.clientX;
       pointerState.current.startY = event.clientY;
     },
-    [handleZoom]
+    [handleZoom, showControls, updatePointer]
   );
 
-  const handlePointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    const container = viewerRef.current;
-    if (container != null && container.hasPointerCapture(event.pointerId)) {
-      container.releasePointerCapture(event.pointerId);
-    }
-    removePointer(event.pointerId);
-  }, []);
+  const handlePointerUp = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      showControls();
+      const container = viewerRef.current;
+      if (container != null && container.hasPointerCapture(event.pointerId)) {
+        container.releasePointerCapture(event.pointerId);
+      }
+      removePointer(event.pointerId);
+    },
+    [removePointer, showControls]
+  );
+
+  const handlePointerEnter = useCallback(() => {
+    showControls();
+  }, [showControls]);
 
   const zoomPercent = Math.round(zoom * 100);
 
@@ -198,8 +247,8 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   }, [zoomPercent]);
 
   return (
-    <section className="flex w-full flex-col gap-4">
-      <div className="flex flex-col gap-3 bg-black sm:rounded-2xl sm:border sm:border-slate-800 sm:bg-slate-950/60 sm:p-4 sm:shadow-lg">
+    <section className="flex min-h-[100svh] w-full flex-col bg-black sm:min-h-0 sm:bg-transparent sm:gap-4">
+      <div className="flex flex-1 flex-col gap-0 bg-black sm:flex-none sm:gap-3 sm:rounded-2xl sm:border sm:border-slate-800 sm:bg-slate-950/60 sm:p-4 sm:shadow-lg">
         <div className="hidden flex-wrap items-center justify-between gap-3 sm:flex">
           <div className="flex items-center gap-2 text-sm text-slate-300">
             <button
@@ -250,10 +299,10 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
             </button>
           </div>
         </div>
-        <div className="relative flex justify-center">
+        <div className="relative flex flex-1 justify-center sm:flex-none">
           <div
             ref={viewerRef}
-            className={`relative h-[100dvh] w-full overflow-auto bg-black touch-none sm:h-auto sm:max-h-[75vh] sm:rounded-xl sm:border sm:border-slate-800 sm:bg-black/60 sm:p-2 lg:max-h-[80vh] ${
+            className={`relative flex-1 h-[100dvh] min-h-[100svh] w-full overflow-auto bg-black touch-none sm:h-auto sm:min-h-0 sm:flex-none sm:max-h-[75vh] sm:rounded-xl sm:border sm:border-slate-800 sm:bg-black/60 sm:p-2 lg:max-h-[80vh] ${
               isDragging ? 'cursor-grabbing' : 'cursor-grab'
             }`}
             onWheel={handleWheel}
@@ -262,6 +311,7 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
             onPointerLeave={handlePointerUp}
+            onPointerEnter={handlePointerEnter}
           >
             {totalPages === 0 ? (
               <div className="flex h-full items-center justify-center text-slate-400">Sin páginas disponibles</div>
@@ -277,33 +327,37 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
             )}
           </div>
           {totalPages > 0 ? (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-2">
-              <button
-                type="button"
-                className={`pointer-events-auto flex h-16 w-16 items-center justify-center rounded-full text-4xl text-white transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:h-12 sm:w-12 sm:text-3xl ${
-                  clampedPage === 0
-                    ? 'cursor-default opacity-0'
-                    : 'bg-black/30 hover:bg-black/50'
-                }`}
-                onClick={handlePrev}
-                disabled={clampedPage === 0}
-                aria-label="Página anterior"
-              >
-                ‹
-              </button>
-              <button
-                type="button"
-                className={`pointer-events-auto flex h-16 w-16 items-center justify-center rounded-full text-4xl text-white transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:h-12 sm:w-12 sm:text-3xl ${
-                  clampedPage >= totalPages - 1
-                    ? 'cursor-default opacity-0'
-                    : 'bg-black/30 hover:bg-black/50'
-                }`}
-                onClick={handleNext}
-                disabled={clampedPage >= totalPages - 1}
-                aria-label="Página siguiente"
-              >
-                ›
-              </button>
+            <div
+              className={`pointer-events-none absolute inset-0 transition-opacity duration-200 ${
+                controlsVisible ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              {totalPages > 1 ? (
+                <button
+                  type="button"
+                  className={`pointer-events-auto absolute left-3 top-1/2 flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full text-4xl text-white transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:left-4 sm:h-12 sm:w-12 sm:text-3xl ${
+                    clampedPage === 0 ? 'pointer-events-none opacity-0' : 'bg-black/30 hover:bg-black/50'
+                  }`}
+                  onClick={handlePrev}
+                  disabled={clampedPage === 0}
+                  aria-label="Página anterior"
+                >
+                  ‹
+                </button>
+              ) : null}
+              {totalPages > 1 ? (
+                <button
+                  type="button"
+                  className={`pointer-events-auto absolute right-3 top-1/2 flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full text-4xl text-white transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:right-4 sm:h-12 sm:w-12 sm:text-3xl ${
+                    clampedPage >= totalPages - 1 ? 'pointer-events-none opacity-0' : 'bg-black/30 hover:bg-black/50'
+                  }`}
+                  onClick={handleNext}
+                  disabled={clampedPage >= totalPages - 1}
+                  aria-label="Página siguiente"
+                >
+                  ›
+                </button>
+              ) : null}
               <div className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center justify-center rounded-full bg-black/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white sm:text-[0.65rem]">
                 Página {clampedPage + 1} de {totalPages}
               </div>

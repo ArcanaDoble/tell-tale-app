@@ -1,6 +1,6 @@
 import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
-import { deleteObject, getDownloadURL, listAll, ref, uploadBytes } from 'firebase/storage';
-import type { StorageReference } from 'firebase/storage';
+import { deleteObject, getDownloadURL, listAll, ref, uploadBytesResumable } from 'firebase/storage';
+import type { StorageReference, UploadTaskSnapshot } from 'firebase/storage';
 import type { Resource, ResourceMeta, ResourceType, ResourceUploadPayload } from '../types/library';
 import { db, isFirebaseConfigured, storage } from '../firebase/config';
 
@@ -121,7 +121,14 @@ export async function getResourceById(id: string): Promise<Resource | undefined>
   }
 }
 
-export async function uploadResource(payload: ResourceUploadPayload): Promise<string> {
+interface UploadResourceOptions {
+  onProgress?: (progress: number) => void;
+}
+
+export async function uploadResource(
+  payload: ResourceUploadPayload,
+  options: UploadResourceOptions = {}
+): Promise<string> {
   const database = db;
   const storageService = storage;
   if (!isFirebaseConfigured || database == null || storageService == null) {
@@ -139,21 +146,55 @@ export async function uploadResource(payload: ResourceUploadPayload): Promise<st
     .map((tag) => tag.trim())
     .filter((tag) => tag.length > 0);
 
-  const sortedFiles = [...payload.contentFiles].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  const sortedFiles = [...payload.contentFiles].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { numeric: true })
+  );
 
   const pages: string[] = [];
   let downloadUrl: string | null = null;
 
+  const totalUploadBytes =
+    sortedFiles.reduce((total, file) => total + file.size, 0) + (payload.coverFile?.size ?? 0);
+  let uploadedBytes = 0;
+
+  const reportProgress = (bytes: number): void => {
+    if (totalUploadBytes <= 0) {
+      options.onProgress?.(1);
+      return;
+    }
+    const ratio = Math.min(bytes / totalUploadBytes, 1);
+    options.onProgress?.(ratio);
+  };
+
+  reportProgress(0);
+
+  const uploadFileWithProgress = async (fileRef: StorageReference, file: File): Promise<UploadTaskSnapshot> =>
+    await new Promise((resolve, reject) => {
+      const uploadTask = uploadBytesResumable(fileRef, file);
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          reportProgress(uploadedBytes + snapshot.bytesTransferred);
+        },
+        reject,
+        () => {
+          uploadedBytes += file.size;
+          reportProgress(uploadedBytes);
+          resolve(uploadTask.snapshot);
+        }
+      );
+    });
+
   if (payload.resourceType === 'documento') {
     const [file] = sortedFiles;
     const fileRef = ref(storageService, `resources/${documentRef.id}/archivo/${file.name}`);
-    const snapshot = await uploadBytes(fileRef, file);
+    const snapshot = await uploadFileWithProgress(fileRef, file);
     downloadUrl = await getDownloadURL(snapshot.ref);
   } else {
     for (const [index, file] of sortedFiles.entries()) {
       const paddedIndex = String(index + 1).padStart(3, '0');
       const pageRef = ref(storageService, `resources/${documentRef.id}/paginas/${paddedIndex}-${file.name}`);
-      const snapshot = await uploadBytes(pageRef, file);
+      const snapshot = await uploadFileWithProgress(pageRef, file);
       const url = await getDownloadURL(snapshot.ref);
       pages.push(url);
     }
@@ -162,7 +203,7 @@ export async function uploadResource(payload: ResourceUploadPayload): Promise<st
   let coverUrl: string | undefined;
   if (payload.coverFile != null) {
     const coverRef = ref(storageService, `resources/${documentRef.id}/portada/${payload.coverFile.name}`);
-    const snapshot = await uploadBytes(coverRef, payload.coverFile);
+    const snapshot = await uploadFileWithProgress(coverRef, payload.coverFile);
     coverUrl = await getDownloadURL(snapshot.ref);
   } else if (pages.length > 0) {
     coverUrl = pages[0];

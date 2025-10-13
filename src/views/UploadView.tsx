@@ -10,6 +10,7 @@ interface FormState {
   description: string;
   author: string;
   tags: string;
+  collectionName: string;
   resourceType: ResourceType;
   coverFile: File | null;
 }
@@ -21,6 +22,7 @@ const defaultState: FormState = {
   description: '',
   author: '',
   tags: '',
+  collectionName: '',
   resourceType: 'manga',
   coverFile: null
 };
@@ -74,10 +76,11 @@ function UploadView(): JSX.Element {
       setIsUploading(true);
       setUploadProgress(0);
 
-      const tags = formState.tags
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter((tag) => tag.length > 0);
+          const tags = formState.tags
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter((tag) => tag.length > 0);
+      const collectionName = formState.collectionName.trim();
 
       const newId = await uploadResource(
         {
@@ -87,7 +90,8 @@ function UploadView(): JSX.Element {
           tags,
           resourceType: formState.resourceType,
           contentFiles,
-          coverFile: formState.coverFile ?? undefined
+          coverFile: formState.coverFile ?? undefined,
+          collectionName: collectionName.length > 0 ? collectionName : null
         },
         {
           onProgress: (progress) => {
@@ -195,6 +199,20 @@ function UploadView(): JSX.Element {
                 placeholder="fantasía, aventura, misterio"
                 className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-base text-white focus:border-primary focus:outline-none"
               />
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-slate-300">
+              Colección (opcional)
+              <input
+                type="text"
+                name="collectionName"
+                value={formState.collectionName}
+                onChange={(event) => {
+                  setFormState((prev) => ({ ...prev, collectionName: event.target.value }));
+                }}
+                placeholder="Saga nocturna, Temporada 1, Colección personal"
+                className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-base text-white focus:border-primary focus:outline-none"
+              />
+              <span className="text-xs text-slate-500">Agrupa recursos relacionados indicando el nombre de la colección.</span>
             </label>
           </div>
           <label className="flex flex-col gap-2 text-sm text-slate-300">

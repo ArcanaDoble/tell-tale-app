@@ -4,6 +4,7 @@ import LibraryView from '../views/LibraryView';
 import DetailsView from '../views/DetailsView';
 import ReaderView from '../views/ReaderView';
 import UploadView from '../views/UploadView';
+import EditResourceView from '../views/EditResourceView';
 
 export const router = createBrowserRouter([
   {
@@ -17,6 +18,10 @@ export const router = createBrowserRouter([
       {
         path: 'details/:resourceId',
         element: <DetailsView />
+      },
+      {
+        path: 'edit/:resourceId',
+        element: <EditResourceView />
       },
       {
         path: 'read/:resourceId',

@@ -228,7 +228,7 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
         <div className="flex justify-center">
           <div
             ref={viewerRef}
-            className={`max-h-[70vh] w-full overflow-auto rounded-xl border border-slate-800 bg-black/60 p-2 sm:max-h-[75vh] lg:max-h-[80vh] ${
+            className={`h-[calc(100dvh-7rem)] max-h-[calc(100dvh-7rem)] w-full overflow-auto rounded-xl border border-slate-800 bg-black/60 p-2 sm:h-auto sm:max-h-[75vh] lg:max-h-[80vh] ${
               isDragging ? 'cursor-grabbing' : 'cursor-grab'
             } touch-none`}
             onWheel={handleWheel}

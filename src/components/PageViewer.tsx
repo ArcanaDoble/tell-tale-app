@@ -349,11 +349,13 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
 
     if (zoomPercent <= 100) {
       return {
-        width,
-        minWidth: width,
-        maxWidth: 'none',
-        height: '100%',
-        objectFit: 'contain'
+        width: '100%',
+        minWidth: '100%',
+        maxWidth: '100%',
+        height: 'auto',
+        objectFit: 'contain',
+        marginLeft: 'auto',
+        marginRight: 'auto'
       };
     }
 
@@ -361,7 +363,9 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
       width,
       minWidth: width,
       maxWidth: 'none',
-      height: 'auto'
+      height: 'auto',
+      marginLeft: 'auto',
+      marginRight: 'auto'
     };
   }, [zoomPercent]);
 

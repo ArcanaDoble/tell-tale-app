@@ -129,7 +129,10 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
     }
 
     const widthRatio = clientWidth / naturalWidth;
-    const clamped = Math.min(Math.max(widthRatio, MIN_ZOOM), 1);
+    const isMobileViewport =
+      typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
+    const desiredZoom = isMobileViewport ? Math.max(widthRatio, 1) : widthRatio;
+    const clamped = Math.min(Math.max(desiredZoom, MIN_ZOOM), MAX_ZOOM);
     return Math.round(clamped * 100) / 100;
   }, []);
 

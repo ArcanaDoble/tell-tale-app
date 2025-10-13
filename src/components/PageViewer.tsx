@@ -95,41 +95,79 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
         const imageRect = image.getBoundingClientRect();
 
         if (imageRect.width > 0 && imageRect.height > 0) {
-          const scale = rounded / current;
-
           const imageOffsetX = focusPoint.x - imageRect.left;
           const imageOffsetY = focusPoint.y - imageRect.top;
-
           const ratioX = Math.min(Math.max(imageOffsetX / imageRect.width, 0), 1);
           const ratioY = Math.min(Math.max(imageOffsetY / imageRect.height, 0), 1);
-
-          const imageLeftInContent = container.scrollLeft + (imageRect.left - containerRect.left);
-          const imageTopInContent = container.scrollTop + (imageRect.top - containerRect.top);
-
-          const newImageWidth = imageRect.width * scale;
-          const newImageHeight = imageRect.height * scale;
-
-          const targetContentX = imageLeftInContent + newImageWidth * ratioX;
-          const targetContentY = imageTopInContent + newImageHeight * ratioY;
-
           const focusOffsetWithinContainerX = focusPoint.x - containerRect.left;
           const focusOffsetWithinContainerY = focusPoint.y - containerRect.top;
+          const containerClientWidth = container.clientWidth;
+          const containerClientHeight = container.clientHeight;
+          const naturalWidth = image.naturalWidth;
+          const naturalHeight = image.naturalHeight;
 
-          const maxScrollLeft = Math.max(container.scrollWidth - container.clientWidth, 0);
-          const maxScrollTop = Math.max(container.scrollHeight - container.clientHeight, 0);
+          const canUseNaturalDimensions =
+            naturalWidth > 0 &&
+            naturalHeight > 0 &&
+            containerClientWidth > 0 &&
+            containerClientHeight > 0;
 
-          const nextScrollLeft = Math.min(
-            Math.max(targetContentX - focusOffsetWithinContainerX, 0),
-            maxScrollLeft
-          );
-          const nextScrollTop = Math.min(
-            Math.max(targetContentY - focusOffsetWithinContainerY, 0),
-            maxScrollTop
-          );
+          if (canUseNaturalDimensions) {
+            const computeDisplayedSize = (zoomValue: number): { width: number; height: number } => {
+              let width = naturalWidth * zoomValue;
+              let height = naturalHeight * zoomValue;
 
-          requestAnimationFrame(() => {
-            container.scrollTo({ left: nextScrollLeft, top: nextScrollTop });
-          });
+              if (zoomValue <= 1) {
+                const widthScale = containerClientWidth / width;
+                const heightScale = containerClientHeight / height;
+                const limitingScale = Math.min(widthScale, heightScale, 1);
+                width *= limitingScale;
+                height *= limitingScale;
+              }
+
+              return { width, height };
+            };
+
+            const { width: nextDisplayedWidth, height: nextDisplayedHeight } = computeDisplayedSize(rounded);
+            const horizontalOverflow = Math.max(nextDisplayedWidth - containerClientWidth, 0);
+            const verticalOverflow = Math.max(nextDisplayedHeight - containerClientHeight, 0);
+            const newImageLeftInContent =
+              horizontalOverflow > 0 ? 0 : (containerClientWidth - nextDisplayedWidth) / 2;
+            const newImageTopInContent =
+              verticalOverflow > 0 ? 0 : (containerClientHeight - nextDisplayedHeight) / 2;
+            const targetContentX = newImageLeftInContent + nextDisplayedWidth * ratioX;
+            const targetContentY = newImageTopInContent + nextDisplayedHeight * ratioY;
+
+            const nextScrollLeft = Math.min(
+              Math.max(targetContentX - focusOffsetWithinContainerX, 0),
+              horizontalOverflow
+            );
+            const nextScrollTop = Math.min(
+              Math.max(targetContentY - focusOffsetWithinContainerY, 0),
+              verticalOverflow
+            );
+
+            requestAnimationFrame(() => {
+              container.scrollTo({ left: nextScrollLeft, top: nextScrollTop });
+            });
+          } else {
+            const scale = rounded / current;
+            const imageLeftInContent = container.scrollLeft + (imageRect.left - containerRect.left);
+            const imageTopInContent = container.scrollTop + (imageRect.top - containerRect.top);
+            const newImageWidth = imageRect.width * scale;
+            const newImageHeight = imageRect.height * scale;
+            const targetContentX = imageLeftInContent + newImageWidth * ratioX;
+            const targetContentY = imageTopInContent + newImageHeight * ratioY;
+            const maxScrollLeft = Math.max(container.scrollWidth - containerClientWidth, 0);
+            const maxScrollTop = Math.max(container.scrollHeight - containerClientHeight, 0);
+
+            requestAnimationFrame(() => {
+              container.scrollTo({
+                left: Math.min(Math.max(targetContentX - focusOffsetWithinContainerX, 0), maxScrollLeft),
+                top: Math.min(Math.max(targetContentY - focusOffsetWithinContainerY, 0), maxScrollTop)
+              });
+            });
+          }
         }
       }
 

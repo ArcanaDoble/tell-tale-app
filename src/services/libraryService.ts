@@ -1,8 +1,15 @@
-import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { deleteObject, getDownloadURL, listAll, ref, uploadBytesResumable } from 'firebase/storage';
 import type { StorageReference, UploadTaskSnapshot } from 'firebase/storage';
-import type { Resource, ResourceMeta, ResourceType, ResourceUploadPayload } from '../types/library';
+import type {
+  Resource,
+  ResourceMeta,
+  ResourceType,
+  ResourceUpdatePayload,
+  ResourceUploadPayload
+} from '../types/library';
 import { db, isFirebaseConfigured, storage } from '../firebase/config';
+import { normalizeCollectionName } from '../utils/collections';
 
 const COLLECTION_NAME = 'resources';
 
@@ -19,6 +26,8 @@ const fallbackResources: Resource[] = [
     resourceType: 'manga',
     hasReader: true,
     downloadUrl: null,
+    collectionId: 'nocturnas',
+    collectionName: 'Crónicas Nocturnas',
     pages: [
       'https://images.unsplash.com/photo-1526498460520-4c246339dccb?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=80',
@@ -54,6 +63,15 @@ export async function getLibrary(): Promise<ResourceMeta[]> {
           : downloadUrl != null
             ? 1
             : 0;
+      const storedCollectionName = typeof data.collectionName === 'string' ? data.collectionName : null;
+      const storedCollectionId = typeof data.collectionId === 'string' ? data.collectionId : null;
+      const { id: collectionId, name: collectionName } =
+        storedCollectionId != null || storedCollectionName != null
+          ? {
+              id: storedCollectionId ?? normalizeCollectionName(storedCollectionName).id,
+              name: storedCollectionName ?? null
+            }
+          : { id: null, name: null };
       return {
         id: document.id,
         title: data.title ?? 'Sin título',
@@ -66,7 +84,9 @@ export async function getLibrary(): Promise<ResourceMeta[]> {
         pageCount,
         resourceType,
         hasReader,
-        downloadUrl
+        downloadUrl,
+        collectionId,
+        collectionName
       } satisfies ResourceMeta;
     });
   } catch (error) {
@@ -100,6 +120,15 @@ export async function getResourceById(id: string): Promise<Resource | undefined>
         : downloadUrl != null
           ? 1
           : 0;
+    const storedCollectionName = typeof data.collectionName === 'string' ? data.collectionName : null;
+    const storedCollectionId = typeof data.collectionId === 'string' ? data.collectionId : null;
+    const { id: collectionId, name: collectionName } =
+      storedCollectionId != null || storedCollectionName != null
+        ? {
+            id: storedCollectionId ?? normalizeCollectionName(storedCollectionName).id,
+            name: storedCollectionName ?? null
+          }
+        : { id: null, name: null };
     return {
       id: snapshot.id,
       title: data.title ?? 'Sin título',
@@ -113,7 +142,9 @@ export async function getResourceById(id: string): Promise<Resource | undefined>
       resourceType,
       hasReader,
       downloadUrl,
-      pages
+      pages,
+      collectionId,
+      collectionName
     } satisfies Resource;
   } catch (error) {
     console.warn('Falling back to demo resource because Firebase is not reachable.', error);
@@ -213,6 +244,8 @@ export async function uploadResource(
 
   const pageCount = pages.length > 0 ? pages.length : downloadUrl != null ? 1 : 0;
 
+  const { id: collectionId, name: collectionName } = normalizeCollectionName(payload.collectionName);
+
   await setDoc(documentRef, {
     title: payload.title,
     description: payload.description,
@@ -223,11 +256,63 @@ export async function uploadResource(
     pages,
     pageCount,
     downloadUrl,
+    collectionId,
+    collectionName,
     createdAt: now,
     updatedAt: now
   });
 
   return documentRef.id;
+}
+
+export async function updateResource(id: string, payload: ResourceUpdatePayload): Promise<void> {
+  const database = db;
+  const storageService = storage;
+
+  if (!isFirebaseConfigured || database == null) {
+    throw new Error('Firebase no está configurado correctamente para editar recursos.');
+  }
+
+  const resourceRef = doc(database, COLLECTION_NAME, id);
+  const updates: Record<string, unknown> = {
+    updatedAt: serverTimestamp()
+  };
+
+  if (payload.title != null) {
+    updates.title = payload.title;
+  }
+  if (payload.description != null) {
+    updates.description = payload.description;
+  }
+  if (payload.author != null) {
+    updates.author = payload.author;
+  }
+  if (payload.tags != null) {
+    updates.tags = payload.tags.map((tag) => tag.trim()).filter((tag) => tag.length > 0);
+  }
+  if (payload.collectionName !== undefined) {
+    const { id: collectionId, name: collectionName } = normalizeCollectionName(payload.collectionName);
+    updates.collectionId = collectionId;
+    updates.collectionName = collectionName;
+  }
+
+  if (payload.coverFile != null) {
+    if (storageService == null) {
+      throw new Error('Firebase Storage no está configurado para actualizar la portada.');
+    }
+
+    const coverRef = ref(storageService, `resources/${id}/portada/${payload.coverFile.name}`);
+    const uploadTask = uploadBytesResumable(coverRef, payload.coverFile);
+    const snapshot = await new Promise<UploadTaskSnapshot>((resolve, reject) => {
+      uploadTask.on('state_changed', undefined, reject, () => {
+        resolve(uploadTask.snapshot);
+      });
+    });
+    const coverUrl = await getDownloadURL(snapshot.ref);
+    updates.coverUrl = coverUrl;
+  }
+
+  await updateDoc(resourceRef, updates);
 }
 
 async function deleteFolderContents(folderRef: StorageReference): Promise<void> {

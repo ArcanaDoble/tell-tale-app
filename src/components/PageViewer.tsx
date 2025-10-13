@@ -122,18 +122,23 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
       return 1;
     }
 
-    const { clientWidth } = container;
-    const naturalWidth = image.naturalWidth;
-    if (naturalWidth === 0) {
+    const { clientWidth, clientHeight } = container;
+    const { naturalWidth, naturalHeight } = image;
+    if (naturalWidth === 0 || naturalHeight === 0) {
       return 1;
     }
 
     const widthRatio = clientWidth / naturalWidth;
+    const heightRatio = clientHeight / naturalHeight;
     const isMobileViewport =
       typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
-    const desiredZoom = isMobileViewport ? Math.max(widthRatio, 1) : widthRatio;
-    const clamped = Math.min(Math.max(desiredZoom, MIN_ZOOM), MAX_ZOOM);
-    return Math.round(clamped * 100) / 100;
+    const desiredZoom = isMobileViewport
+      ? Math.max(widthRatio, 1)
+      : Math.min(widthRatio, heightRatio, 1);
+    const limitedZoom = Math.min(desiredZoom, MAX_ZOOM);
+    const minimumAllowed = isMobileViewport ? MIN_ZOOM : 0;
+    const appliedZoom = Math.max(limitedZoom, minimumAllowed);
+    return Math.round(appliedZoom * 100) / 100;
   }, []);
 
   const fitContentToScreen = useCallback(() => {
@@ -345,13 +350,14 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   const zoomPercent = Math.round(zoom * 100);
 
   const imageStyle = useMemo<CSSProperties>(() => {
-    const width = `${zoomPercent}%`;
+    const widthValue = zoom * 100;
+    const width = `${widthValue}%`;
 
     if (zoomPercent <= 100) {
       return {
-        width: '100%',
-        minWidth: '100%',
-        maxWidth: '100%',
+        width,
+        minWidth: width,
+        maxWidth: width,
         height: 'auto',
         objectFit: 'contain',
         marginLeft: 'auto',
@@ -367,7 +373,7 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
       marginLeft: 'auto',
       marginRight: 'auto'
     };
-  }, [zoomPercent]);
+  }, [zoom, zoomPercent]);
 
   useEffect(() => {
     if (hasUserAdjustedZoomRef.current) {

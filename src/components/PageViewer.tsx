@@ -82,7 +82,7 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
     goToPage(clampedPage - 1);
   };
 
-  const handleZoom = useCallback((delta: number, focusPoint?: { x: number; y: number }) => {
+  const handleZoom = useCallback((delta: number) => {
     const container = viewerRef.current;
     const image = imageRef.current;
 
@@ -90,19 +90,16 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
       const next = Math.min(Math.max(current + delta, MIN_ZOOM), MAX_ZOOM);
       const rounded = Math.round(next * 100) / 100;
 
-      if (container != null && image != null && focusPoint != null && rounded !== current) {
-        const containerRect = container.getBoundingClientRect();
+      if (container != null && image != null && rounded !== current) {
         const imageRect = image.getBoundingClientRect();
 
         if (imageRect.width > 0 && imageRect.height > 0) {
-          const imageOffsetX = focusPoint.x - imageRect.left;
-          const imageOffsetY = focusPoint.y - imageRect.top;
-          const ratioX = Math.min(Math.max(imageOffsetX / imageRect.width, 0), 1);
-          const ratioY = Math.min(Math.max(imageOffsetY / imageRect.height, 0), 1);
-          const focusOffsetWithinContainerX = focusPoint.x - containerRect.left;
-          const focusOffsetWithinContainerY = focusPoint.y - containerRect.top;
           const containerClientWidth = container.clientWidth;
           const containerClientHeight = container.clientHeight;
+          const ratioX = 1;
+          const ratioY = 1;
+          const focusOffsetWithinContainerX = containerClientWidth;
+          const focusOffsetWithinContainerY = containerClientHeight;
           const naturalWidth = image.naturalWidth;
           const naturalHeight = image.naturalHeight;
 
@@ -151,6 +148,7 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
               container.scrollTo({ left: nextScrollLeft, top: nextScrollTop });
             });
           } else {
+            const containerRect = container.getBoundingClientRect();
             const scale = rounded / current;
             const imageLeftInContent = container.scrollLeft + (imageRect.left - containerRect.left);
             const imageTopInContent = container.scrollTop + (imageRect.top - containerRect.top);
@@ -163,8 +161,14 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
 
             requestAnimationFrame(() => {
               container.scrollTo({
-                left: Math.min(Math.max(targetContentX - focusOffsetWithinContainerX, 0), maxScrollLeft),
-                top: Math.min(Math.max(targetContentY - focusOffsetWithinContainerY, 0), maxScrollTop)
+                left: Math.min(
+                  Math.max(targetContentX - focusOffsetWithinContainerX, 0),
+                  maxScrollLeft
+                ),
+                top: Math.min(
+                  Math.max(targetContentY - focusOffsetWithinContainerY, 0),
+                  maxScrollTop
+                )
               });
             });
           }
@@ -246,21 +250,14 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
       event.stopPropagation();
       showControls();
       const delta = event.deltaY > 0 ? -0.1 : 0.1;
-      handleZoom(delta, { x: event.clientX, y: event.clientY });
+      handleZoom(delta);
     },
     [handleZoom, showControls]
   );
 
   const zoomByStep = useCallback(
     (delta: number) => {
-      const container = viewerRef.current;
-      if (container == null) {
-        handleZoom(delta);
-        return;
-      }
-
-      const rect = container.getBoundingClientRect();
-      handleZoom(delta, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+      handleZoom(delta);
     },
     [handleZoom]
   );
@@ -358,14 +355,13 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
           if (lastTapRef.current != null && now - lastTapRef.current.time < 300) {
             const distance = Math.hypot(lastTapRef.current.x - event.clientX, lastTapRef.current.y - event.clientY);
             if (distance < 30) {
-              const focusPoint = { x: event.clientX, y: event.clientY };
               if (zoomRef.current > 1) {
                 const fitted = calculateFitZoom();
                 resetUserZoom(fitted);
                 container.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
               } else {
                 const nextZoom = Math.min(zoomRef.current + 0.4, MAX_ZOOM);
-                handleZoom(nextZoom - zoomRef.current, focusPoint);
+                handleZoom(nextZoom - zoomRef.current);
               }
             }
             lastTapRef.current = null;
@@ -396,7 +392,7 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
         if (previous != null) {
           const delta = (distance - previous) / 250;
           if (delta !== 0) {
-            handleZoom(delta, { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 });
+            handleZoom(delta);
           }
         }
         pointerState.current.lastDistance = distance;

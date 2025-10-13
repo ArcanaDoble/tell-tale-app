@@ -8,12 +8,15 @@ interface PageViewerProps {
 
 const MIN_ZOOM = 0.75;
 const MAX_ZOOM = 2;
+const MIN_FIT_ZOOM_DESKTOP = 0.1;
+const MIN_FIT_ZOOM_MOBILE = 0.1;
 
 function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
 
   const viewerRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -81,21 +84,53 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
 
   const handleZoom = useCallback((delta: number, focusPoint?: { x: number; y: number }) => {
     const container = viewerRef.current;
+    const image = imageRef.current;
+
     setZoom((current) => {
       const next = Math.min(Math.max(current + delta, MIN_ZOOM), MAX_ZOOM);
       const rounded = Math.round(next * 100) / 100;
 
-      if (container != null && focusPoint != null) {
-        const rect = container.getBoundingClientRect();
-        const offsetX = focusPoint.x - rect.left + container.scrollLeft;
-        const offsetY = focusPoint.y - rect.top + container.scrollTop;
-        const scale = rounded / current;
-        const nextScrollLeft = offsetX * scale - (focusPoint.x - rect.left);
-        const nextScrollTop = offsetY * scale - (focusPoint.y - rect.top);
+      if (container != null && image != null && focusPoint != null && rounded !== current) {
+        const containerRect = container.getBoundingClientRect();
+        const imageRect = image.getBoundingClientRect();
 
-        requestAnimationFrame(() => {
-          container.scrollTo({ left: nextScrollLeft, top: nextScrollTop });
-        });
+        if (imageRect.width > 0 && imageRect.height > 0) {
+          const scale = rounded / current;
+
+          const imageOffsetX = focusPoint.x - imageRect.left;
+          const imageOffsetY = focusPoint.y - imageRect.top;
+
+          const ratioX = Math.min(Math.max(imageOffsetX / imageRect.width, 0), 1);
+          const ratioY = Math.min(Math.max(imageOffsetY / imageRect.height, 0), 1);
+
+          const imageLeftInContent = container.scrollLeft + (imageRect.left - containerRect.left);
+          const imageTopInContent = container.scrollTop + (imageRect.top - containerRect.top);
+
+          const newImageWidth = imageRect.width * scale;
+          const newImageHeight = imageRect.height * scale;
+
+          const targetContentX = imageLeftInContent + newImageWidth * ratioX;
+          const targetContentY = imageTopInContent + newImageHeight * ratioY;
+
+          const focusOffsetWithinContainerX = focusPoint.x - containerRect.left;
+          const focusOffsetWithinContainerY = focusPoint.y - containerRect.top;
+
+          const maxScrollLeft = Math.max(container.scrollWidth - container.clientWidth, 0);
+          const maxScrollTop = Math.max(container.scrollHeight - container.clientHeight, 0);
+
+          const nextScrollLeft = Math.min(
+            Math.max(targetContentX - focusOffsetWithinContainerX, 0),
+            maxScrollLeft
+          );
+          const nextScrollTop = Math.min(
+            Math.max(targetContentY - focusOffsetWithinContainerY, 0),
+            maxScrollTop
+          );
+
+          requestAnimationFrame(() => {
+            container.scrollTo({ left: nextScrollLeft, top: nextScrollTop });
+          });
+        }
       }
 
       hasUserAdjustedZoomRef.current = true;
@@ -122,18 +157,39 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
       return 1;
     }
 
-    const { clientWidth } = container;
-    const naturalWidth = image.naturalWidth;
-    if (naturalWidth === 0) {
+    const { clientWidth, clientHeight } = container;
+    const { naturalWidth, naturalHeight } = image;
+    if (naturalWidth === 0 || naturalHeight === 0) {
       return 1;
     }
 
     const widthRatio = clientWidth / naturalWidth;
+    const heightRatio = clientHeight / naturalHeight;
     const isMobileViewport =
       typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
-    const desiredZoom = isMobileViewport ? Math.max(widthRatio, 1) : widthRatio;
-    const clamped = Math.min(Math.max(desiredZoom, MIN_ZOOM), MAX_ZOOM);
-    return Math.round(clamped * 100) / 100;
+
+    const fitByWidth = Math.min(widthRatio, 1);
+    const fitByHeight = Math.min(heightRatio, 1);
+
+    if (isMobileViewport) {
+      let desiredMobileZoom = Math.min(fitByWidth, fitByHeight);
+
+      if (fitByWidth > desiredMobileZoom && desiredMobileZoom < 0.45) {
+        desiredMobileZoom = fitByWidth;
+      }
+
+      const limitedMobileZoom = Math.min(Math.max(desiredMobileZoom, MIN_FIT_ZOOM_MOBILE), MAX_ZOOM);
+      return Math.round(limitedMobileZoom * 100) / 100;
+    }
+
+    let desiredZoom = Math.min(fitByWidth, fitByHeight);
+
+    if (fitByWidth > desiredZoom && desiredZoom < 0.45) {
+      desiredZoom = fitByWidth;
+    }
+
+    const limitedZoom = Math.min(Math.max(desiredZoom, MIN_FIT_ZOOM_DESKTOP), MAX_ZOOM);
+    return Math.round(limitedZoom * 100) / 100;
   }, []);
 
   const fitContentToScreen = useCallback(() => {
@@ -345,25 +401,37 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   const zoomPercent = Math.round(zoom * 100);
 
   const imageStyle = useMemo<CSSProperties>(() => {
-    const width = `${zoomPercent}%`;
+    const hasDimensions = imageDimensions.width > 0 && imageDimensions.height > 0;
+    const calculatedWidth = hasDimensions ? imageDimensions.width * zoom : undefined;
+    const calculatedHeight = hasDimensions ? imageDimensions.height * zoom : undefined;
 
     if (zoomPercent <= 100) {
+      const widthValue = calculatedWidth != null ? `${calculatedWidth}px` : '100%';
+      const heightValue = calculatedHeight != null ? `${calculatedHeight}px` : 'auto';
       return {
-        width,
-        minWidth: width,
-        maxWidth: 'none',
-        height: '100%',
-        objectFit: 'contain'
+        width: widthValue,
+        minWidth: widthValue,
+        height: heightValue,
+        maxHeight: '100%',
+        maxWidth: '100%',
+        objectFit: 'contain',
+        marginLeft: 'auto',
+        marginRight: 'auto'
       };
     }
 
+    const widthValue = calculatedWidth != null ? `${calculatedWidth}px` : 'auto';
+    const heightValue = calculatedHeight != null ? `${calculatedHeight}px` : 'auto';
     return {
-      width,
-      minWidth: width,
+      width: widthValue,
+      minWidth: widthValue,
+      height: heightValue,
       maxWidth: 'none',
-      height: 'auto'
+      maxHeight: 'none',
+      marginLeft: 'auto',
+      marginRight: 'auto'
     };
-  }, [zoomPercent]);
+  }, [imageDimensions.height, imageDimensions.width, zoom, zoomPercent]);
 
   useEffect(() => {
     if (hasUserAdjustedZoomRef.current) {
@@ -393,12 +461,17 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   }, [fitContentToScreen]);
 
   const handleImageLoad = useCallback(() => {
+    const image = imageRef.current;
+    if (image != null) {
+      setImageDimensions({ width: image.naturalWidth, height: image.naturalHeight });
+    }
     if (!hasUserAdjustedZoomRef.current) {
       fitContentToScreen();
     }
   }, [fitContentToScreen]);
 
   useEffect(() => {
+    setImageDimensions({ width: 0, height: 0 });
     const image = imageRef.current;
     if (image != null && image.complete) {
       handleImageLoad();
@@ -462,7 +535,7 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
         <div className="relative flex flex-1 justify-center sm:flex-none">
           <div
             ref={viewerRef}
-            className={`relative flex-1 h-[100dvh] min-h-[100svh] w-full overscroll-none overflow-auto bg-black touch-none sm:h-auto sm:min-h-0 sm:flex-none sm:max-h-[75vh] sm:rounded-xl sm:border sm:border-slate-800 sm:bg-black/60 sm:p-2 lg:max-h-[80vh] ${
+            className={`relative flex flex-1 h-[100dvh] min-h-[100svh] w-full items-center justify-center overscroll-none overflow-auto bg-black touch-none sm:h-auto sm:min-h-0 sm:flex-none sm:max-h-[75vh] sm:rounded-xl sm:border sm:border-slate-800 sm:bg-black/60 sm:p-2 lg:max-h-[80vh] ${
               isDragging ? 'cursor-grabbing' : 'cursor-grab'
             }`}
             onPointerDown={handlePointerDown}

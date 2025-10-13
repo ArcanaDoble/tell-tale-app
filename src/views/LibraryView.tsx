@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ResourceCard from '../components/ResourceCard';
 import type { ResourceMeta } from '../types/library';
@@ -10,6 +10,7 @@ function LibraryView(): JSX.Element {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [collectionFilter, setCollectionFilter] = useState<'all' | 'none' | string>('all');
 
   useEffect(() => {
     const fetchResources = async (): Promise<void> => {
@@ -28,6 +29,39 @@ function LibraryView(): JSX.Element {
 
     void fetchResources();
   }, []);
+
+  const collectionOptions = useMemo(() => {
+    const counts = new Map<string, { id: string; name: string; count: number }>();
+    let withoutCollection = 0;
+
+    for (const resource of resources) {
+      const id = resource.collectionId ?? undefined;
+      const name = resource.collectionName?.trim();
+      if (id != null && name != null && name.length > 0) {
+        const current = counts.get(id) ?? { id, name, count: 0 };
+        counts.set(id, { ...current, name, count: current.count + 1 });
+      } else {
+        withoutCollection += 1;
+      }
+    }
+
+    const sortedCollections = Array.from(counts.values()).sort((a, b) => a.name.localeCompare(b.name));
+
+    return {
+      collections: sortedCollections,
+      withoutCollection
+    };
+  }, [resources]);
+
+  const filteredResources = useMemo(() => {
+    if (collectionFilter === 'all') {
+      return resources;
+    }
+    if (collectionFilter === 'none') {
+      return resources.filter((resource) => resource.collectionId == null || resource.collectionName == null);
+    }
+    return resources.filter((resource) => resource.collectionId === collectionFilter);
+  }, [collectionFilter, resources]);
 
   const handleDelete = async (resource: ResourceMeta): Promise<void> => {
     const confirmed = window.confirm(
@@ -81,6 +115,55 @@ function LibraryView(): JSX.Element {
           {feedback.message}
         </div>
       ) : null}
+      {collectionOptions.collections.length > 0 || collectionOptions.withoutCollection > 0 ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-800/80 bg-slate-950/40 p-4 text-sm text-slate-300">
+          <span className="text-xs uppercase tracking-wide text-slate-400">Colecciones</span>
+          <button
+            type="button"
+            className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition ${
+              collectionFilter === 'all'
+                ? 'bg-primary/20 text-primary'
+                : 'border border-slate-700 text-slate-200 hover:border-primary hover:text-primary'
+            }`}
+            onClick={() => {
+              setCollectionFilter('all');
+            }}
+          >
+            Todas ({resources.length})
+          </button>
+          {collectionOptions.collections.map((collection) => (
+            <button
+              key={collection.id}
+              type="button"
+              className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition ${
+                collectionFilter === collection.id
+                  ? 'bg-primary/20 text-primary'
+                  : 'border border-slate-700 text-slate-200 hover:border-primary hover:text-primary'
+              }`}
+              onClick={() => {
+                setCollectionFilter(collection.id);
+              }}
+            >
+              {collection.name} ({collection.count})
+            </button>
+          ))}
+          {collectionOptions.withoutCollection > 0 ? (
+            <button
+              type="button"
+              className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition ${
+                collectionFilter === 'none'
+                  ? 'bg-primary/20 text-primary'
+                  : 'border border-slate-700 text-slate-200 hover:border-primary hover:text-primary'
+              }`}
+              onClick={() => {
+                setCollectionFilter('none');
+              }}
+            >
+              Sin colección ({collectionOptions.withoutCollection})
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {isLoading ? (
         <div className="grid flex-1 place-items-center rounded-2xl border border-slate-800 bg-slate-950/40 p-12 text-slate-400">
           Cargando biblioteca...
@@ -90,16 +173,24 @@ function LibraryView(): JSX.Element {
           {loadError}
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {resources.map((resource) => (
-            <ResourceCard
-              key={resource.id}
-              resource={resource}
-              onDelete={handleDelete}
-              isDeleting={deletingId === resource.id}
-            />
-          ))}
-        </div>
+        <>
+          {filteredResources.length === 0 ? (
+            <div className="grid flex-1 place-items-center rounded-2xl border border-slate-800 bg-slate-950/40 p-12 text-slate-400">
+              No hay recursos para la colección seleccionada todavía.
+            </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              {filteredResources.map((resource) => (
+                <ResourceCard
+                  key={resource.id}
+                  resource={resource}
+                  onDelete={handleDelete}
+                  isDeleting={deletingId === resource.id}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </section>
   );

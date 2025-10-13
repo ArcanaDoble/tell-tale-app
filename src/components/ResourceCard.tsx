@@ -16,6 +16,7 @@ const typeLabels: Record<ResourceMeta['resourceType'], string> = {
 function ResourceCard({ resource, onDelete, isDeleting = false }: ResourceCardProps): JSX.Element {
   const label = typeLabels[resource.resourceType] ?? 'Nuevo';
   const hasDownload = !resource.hasReader && resource.downloadUrl != null;
+  const collectionLabel = resource.collectionName?.trim();
 
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/60 shadow-lg transition hover:border-primary/70 hover:shadow-primary/20">
@@ -35,6 +36,11 @@ function ResourceCard({ resource, onDelete, isDeleting = false }: ResourceCardPr
           <h3 className="text-lg font-semibold text-white">{resource.title}</h3>
           <p className="text-sm text-slate-400">{resource.author}</p>
         </header>
+        {collectionLabel ? (
+          <span className="w-fit rounded-full border border-slate-700 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-300">
+            Colección: {collectionLabel}
+          </span>
+        ) : null}
         <p className="line-clamp-3 text-sm text-slate-300">{resource.description}</p>
         <footer className="mt-auto flex items-center justify-between gap-3 text-xs uppercase tracking-wide text-slate-400">
           <span>{resource.hasReader ? `${resource.pageCount} páginas` : 'Disponible para descarga'}</span>
@@ -44,6 +50,12 @@ function ResourceCard({ resource, onDelete, isDeleting = false }: ResourceCardPr
               className="rounded-full border border-slate-700 px-3 py-1 font-medium text-slate-200 transition hover:border-primary hover:text-primary"
             >
               Detalles
+            </Link>
+            <Link
+              to={`/edit/${resource.id}`}
+              className="rounded-full border border-slate-700 px-3 py-1 font-medium text-slate-200 transition hover:border-primary hover:text-primary"
+            >
+              Editar
             </Link>
             {resource.hasReader ? (
               <Link

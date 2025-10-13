@@ -11,6 +11,8 @@ export interface ResourceMeta {
   resourceType: ResourceType;
   hasReader: boolean;
   downloadUrl?: string | null;
+  collectionId?: string | null;
+  collectionName?: string | null;
 }
 
 export interface Resource extends ResourceMeta {
@@ -24,5 +26,15 @@ export interface ResourceUploadPayload {
   tags: string[];
   resourceType: ResourceType;
   contentFiles: File[];
+  coverFile?: File | null;
+  collectionName?: string | null;
+}
+
+export interface ResourceUpdatePayload {
+  title?: string;
+  description?: string;
+  author?: string;
+  tags?: string[];
+  collectionName?: string | null;
   coverFile?: File | null;
 }

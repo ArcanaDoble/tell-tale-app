@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type {
-  CSSProperties,
-  PointerEvent as ReactPointerEvent,
-  WheelEvent as ReactWheelEvent
-} from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 
 interface PageViewerProps {
   pages: string[];
@@ -81,14 +77,32 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   }, []);
 
   const handleWheel = useCallback(
-    (event: ReactWheelEvent<HTMLDivElement>) => {
+    (event: WheelEvent) => {
       event.preventDefault();
+      event.stopPropagation();
       showControls();
       const delta = event.deltaY > 0 ? -0.1 : 0.1;
       handleZoom(delta);
     },
     [handleZoom, showControls]
   );
+
+  useEffect(() => {
+    const container = viewerRef.current;
+    if (container == null) {
+      return;
+    }
+
+    const handleNativeWheel = (event: WheelEvent): void => {
+      handleWheel(event);
+    };
+
+    container.addEventListener('wheel', handleNativeWheel, { passive: false });
+
+    return () => {
+      container.removeEventListener('wheel', handleNativeWheel);
+    };
+  }, [handleWheel]);
 
   const updatePointer = useCallback((pointerId: number, position: { x: number; y: number }) => {
     pointerState.current.active.set(pointerId, position);
@@ -302,10 +316,9 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
         <div className="relative flex flex-1 justify-center sm:flex-none">
           <div
             ref={viewerRef}
-            className={`relative flex-1 h-[100dvh] min-h-[100svh] w-full overflow-auto bg-black touch-none sm:h-auto sm:min-h-0 sm:flex-none sm:max-h-[75vh] sm:rounded-xl sm:border sm:border-slate-800 sm:bg-black/60 sm:p-2 lg:max-h-[80vh] ${
+            className={`relative flex-1 h-[100dvh] min-h-[100svh] w-full overscroll-none overflow-auto bg-black touch-none sm:h-auto sm:min-h-0 sm:flex-none sm:max-h-[75vh] sm:rounded-xl sm:border sm:border-slate-800 sm:bg-black/60 sm:p-2 lg:max-h-[80vh] ${
               isDragging ? 'cursor-grabbing' : 'cursor-grab'
             }`}
-            onWheel={handleWheel}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}

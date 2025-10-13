@@ -9,6 +9,7 @@ interface PageViewerProps {
 const MIN_ZOOM = 0.75;
 const MAX_ZOOM = 2;
 const MIN_FIT_ZOOM_DESKTOP = 0.1;
+const MIN_FIT_ZOOM_MOBILE = 0.1;
 
 function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -134,14 +135,20 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
     const isMobileViewport =
       typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
 
+    const fitByWidth = Math.min(widthRatio, 1);
+    const fitByHeight = Math.min(heightRatio, 1);
+
     if (isMobileViewport) {
-      const mobileZoom = Math.max(widthRatio, 1);
-      const limitedMobileZoom = Math.min(Math.max(mobileZoom, MIN_ZOOM), MAX_ZOOM);
+      let desiredMobileZoom = Math.min(fitByWidth, fitByHeight);
+
+      if (fitByWidth > desiredMobileZoom && desiredMobileZoom < 0.45) {
+        desiredMobileZoom = fitByWidth;
+      }
+
+      const limitedMobileZoom = Math.min(Math.max(desiredMobileZoom, MIN_FIT_ZOOM_MOBILE), MAX_ZOOM);
       return Math.round(limitedMobileZoom * 100) / 100;
     }
 
-    const fitByWidth = Math.min(widthRatio, 1);
-    const fitByHeight = Math.min(heightRatio, 1);
     let desiredZoom = Math.min(fitByWidth, fitByHeight);
 
     if (fitByWidth > desiredZoom && desiredZoom < 0.45) {

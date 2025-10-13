@@ -34,6 +34,8 @@ describe('LibraryView', () => {
     });
 
     expect(screen.getByText('Tester')).toBeInTheDocument();
+    expect(screen.getByText('Colecciones')).toBeInTheDocument();
+    expect(screen.getByText('Sin colección (1)')).toBeInTheDocument();
     expect(spy).toHaveBeenCalledTimes(1);
   });
 });

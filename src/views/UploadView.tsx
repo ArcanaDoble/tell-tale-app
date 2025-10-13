@@ -10,6 +10,7 @@ interface FormState {
   description: string;
   author: string;
   tags: string;
+  collectionName: string;
   resourceType: ResourceType;
   coverFile: File | null;
 }
@@ -21,6 +22,7 @@ const defaultState: FormState = {
   description: '',
   author: '',
   tags: '',
+  collectionName: '',
   resourceType: 'manga',
   coverFile: null
 };
@@ -32,6 +34,8 @@ function UploadView(): JSX.Element {
   const [message, setMessage] = useState<string>('');
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [isProcessingFiles, setIsProcessingFiles] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   const acceptContent = useMemo(() => {
     if (formState.resourceType === 'documento') {
@@ -69,24 +73,37 @@ function UploadView(): JSX.Element {
     try {
       setStatus('loading');
       setMessage('Subiendo recurso, espera por favor...');
+      setIsUploading(true);
+      setUploadProgress(0);
 
-      const tags = formState.tags
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter((tag) => tag.length > 0);
+          const tags = formState.tags
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter((tag) => tag.length > 0);
+      const collectionName = formState.collectionName.trim();
 
-      const newId = await uploadResource({
-        title: formState.title,
-        description: formState.description,
-        author: formState.author,
-        tags,
-        resourceType: formState.resourceType,
-        contentFiles,
-        coverFile: formState.coverFile ?? undefined
-      });
+      const newId = await uploadResource(
+        {
+          title: formState.title,
+          description: formState.description,
+          author: formState.author,
+          tags,
+          resourceType: formState.resourceType,
+          contentFiles,
+          coverFile: formState.coverFile ?? undefined,
+          collectionName: collectionName.length > 0 ? collectionName : null
+        },
+        {
+          onProgress: (progress) => {
+            setUploadProgress(Math.round(progress * 100));
+          }
+        }
+      );
 
       setStatus('success');
       setMessage('¡Recurso cargado correctamente! Ya puedes consultarlo desde la biblioteca.');
+      setIsUploading(false);
+      setUploadProgress(100);
       setResourceId(newId);
       setFormState(defaultState);
       setContentFiles([]);
@@ -99,6 +116,7 @@ function UploadView(): JSX.Element {
       } else {
         setMessage('No se pudo subir el recurso. Intenta nuevamente más tarde.');
       }
+      setIsUploading(false);
     }
   };
 
@@ -182,6 +200,20 @@ function UploadView(): JSX.Element {
                 className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-base text-white focus:border-primary focus:outline-none"
               />
             </label>
+            <label className="flex flex-col gap-2 text-sm text-slate-300">
+              Colección (opcional)
+              <input
+                type="text"
+                name="collectionName"
+                value={formState.collectionName}
+                onChange={(event) => {
+                  setFormState((prev) => ({ ...prev, collectionName: event.target.value }));
+                }}
+                placeholder="Saga nocturna, Temporada 1, Colección personal"
+                className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-base text-white focus:border-primary focus:outline-none"
+              />
+              <span className="text-xs text-slate-500">Agrupa recursos relacionados indicando el nombre de la colección.</span>
+            </label>
           </div>
           <label className="flex flex-col gap-2 text-sm text-slate-300">
             Descripción
@@ -228,6 +260,8 @@ function UploadView(): JSX.Element {
                     setContentFiles([]);
                     setStatus('idle');
                     setMessage('');
+                    setIsUploading(false);
+                    setUploadProgress(0);
                     return;
                   }
 
@@ -235,6 +269,8 @@ function UploadView(): JSX.Element {
                     setIsProcessingFiles(true);
                     setStatus('loading');
                     setMessage('Extrayendo páginas del archivo seleccionado, espera por favor...');
+                    setIsUploading(false);
+                    setUploadProgress(0);
                     void extractContentFiles(files)
                       .then((extracted) => {
                         if (extracted.length === 0) {
@@ -253,6 +289,7 @@ function UploadView(): JSX.Element {
                         } else {
                           setMessage('No se pudieron extraer las páginas del archivo seleccionado.');
                         }
+                        setIsUploading(false);
                       })
                       .finally(() => {
                         setIsProcessingFiles(false);
@@ -261,6 +298,8 @@ function UploadView(): JSX.Element {
                     setContentFiles(files);
                     setStatus('idle');
                     setMessage('');
+                    setIsUploading(false);
+                    setUploadProgress(0);
                   }
                 }}
                 className="rounded-xl border border-dashed border-slate-700 bg-slate-900 px-4 py-3 text-base text-white focus:border-primary focus:outline-none"
@@ -283,6 +322,17 @@ function UploadView(): JSX.Element {
               }`}
             >
               {message}
+              {isUploading ? (
+                <div className="mt-4">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-200"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                  <span className="mt-2 block text-xs text-slate-400">{uploadProgress}% completado</span>
+                </div>
+              ) : null}
               {status === 'success' && resourceId != null ? (
                 <div className="mt-2 text-xs text-slate-300">
                   <span>Id del recurso: {resourceId}</span>
@@ -311,6 +361,8 @@ function UploadView(): JSX.Element {
                 setStatus('idle');
                 setMessage('');
                 setResourceId(null);
+                setIsUploading(false);
+                setUploadProgress(0);
               }}
               disabled={status === 'loading'}
             >

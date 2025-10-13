@@ -24,6 +24,7 @@ function DetailsView(): JSX.Element {
   }, [resourceId]);
 
   const tags = useMemo(() => resource?.tags ?? [], [resource]);
+  const collectionName = useMemo(() => resource?.collectionName?.trim() ?? null, [resource]);
   const typeLabel = useMemo(() => {
     if (resource == null) {
       return '';
@@ -69,6 +70,9 @@ function DetailsView(): JSX.Element {
             </span>
             <h1 className="text-3xl font-bold text-white sm:text-4xl">{resource.title}</h1>
             <p className="text-slate-400">Por {resource.author}</p>
+            {collectionName ? (
+              <span className="text-xs uppercase tracking-wide text-slate-400">Colección: {collectionName}</span>
+            ) : null}
           </header>
           <p className="text-lg text-slate-200">{resource.description}</p>
           <div className="flex flex-wrap gap-2">
@@ -99,6 +103,12 @@ function DetailsView(): JSX.Element {
                 Descargar archivo
               </a>
             ) : null}
+            <Link
+              to={`/edit/${resource.id}`}
+              className="rounded-full border border-slate-700 px-5 py-2 text-sm font-semibold uppercase tracking-wide text-slate-200 transition hover:border-primary hover:text-primary"
+            >
+              Editar
+            </Link>
             <BookmarkButton resourceId={resource.id} />
           </div>
         </div>

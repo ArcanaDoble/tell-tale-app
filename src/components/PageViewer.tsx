@@ -84,21 +84,53 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
 
   const handleZoom = useCallback((delta: number, focusPoint?: { x: number; y: number }) => {
     const container = viewerRef.current;
+    const image = imageRef.current;
+
     setZoom((current) => {
       const next = Math.min(Math.max(current + delta, MIN_ZOOM), MAX_ZOOM);
       const rounded = Math.round(next * 100) / 100;
 
-      if (container != null && focusPoint != null) {
-        const rect = container.getBoundingClientRect();
-        const offsetX = focusPoint.x - rect.left + container.scrollLeft;
-        const offsetY = focusPoint.y - rect.top + container.scrollTop;
-        const scale = rounded / current;
-        const nextScrollLeft = offsetX * scale - (focusPoint.x - rect.left);
-        const nextScrollTop = offsetY * scale - (focusPoint.y - rect.top);
+      if (container != null && image != null && focusPoint != null && rounded !== current) {
+        const containerRect = container.getBoundingClientRect();
+        const imageRect = image.getBoundingClientRect();
 
-        requestAnimationFrame(() => {
-          container.scrollTo({ left: nextScrollLeft, top: nextScrollTop });
-        });
+        if (imageRect.width > 0 && imageRect.height > 0) {
+          const scale = rounded / current;
+
+          const imageOffsetX = focusPoint.x - imageRect.left;
+          const imageOffsetY = focusPoint.y - imageRect.top;
+
+          const ratioX = Math.min(Math.max(imageOffsetX / imageRect.width, 0), 1);
+          const ratioY = Math.min(Math.max(imageOffsetY / imageRect.height, 0), 1);
+
+          const imageLeftInContent = container.scrollLeft + (imageRect.left - containerRect.left);
+          const imageTopInContent = container.scrollTop + (imageRect.top - containerRect.top);
+
+          const newImageWidth = imageRect.width * scale;
+          const newImageHeight = imageRect.height * scale;
+
+          const targetContentX = imageLeftInContent + newImageWidth * ratioX;
+          const targetContentY = imageTopInContent + newImageHeight * ratioY;
+
+          const focusOffsetWithinContainerX = focusPoint.x - containerRect.left;
+          const focusOffsetWithinContainerY = focusPoint.y - containerRect.top;
+
+          const maxScrollLeft = Math.max(container.scrollWidth - container.clientWidth, 0);
+          const maxScrollTop = Math.max(container.scrollHeight - container.clientHeight, 0);
+
+          const nextScrollLeft = Math.min(
+            Math.max(targetContentX - focusOffsetWithinContainerX, 0),
+            maxScrollLeft
+          );
+          const nextScrollTop = Math.min(
+            Math.max(targetContentY - focusOffsetWithinContainerY, 0),
+            maxScrollTop
+          );
+
+          requestAnimationFrame(() => {
+            container.scrollTo({ left: nextScrollLeft, top: nextScrollTop });
+          });
+        }
       }
 
       hasUserAdjustedZoomRef.current = true;

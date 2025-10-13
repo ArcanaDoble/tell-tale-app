@@ -16,6 +16,7 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
 
   const viewerRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -368,31 +369,37 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   const zoomPercent = Math.round(zoom * 100);
 
   const imageStyle = useMemo<CSSProperties>(() => {
-    const widthValue = zoom * 100;
-    const width = `${widthValue}%`;
+    const hasDimensions = imageDimensions.width > 0 && imageDimensions.height > 0;
+    const calculatedWidth = hasDimensions ? imageDimensions.width * zoom : undefined;
+    const calculatedHeight = hasDimensions ? imageDimensions.height * zoom : undefined;
 
     if (zoomPercent <= 100) {
+      const widthValue = calculatedWidth != null ? `${calculatedWidth}px` : '100%';
+      const heightValue = calculatedHeight != null ? `${calculatedHeight}px` : 'auto';
       return {
-        width,
-        minWidth: width,
-        maxWidth: width,
-        height: 'auto',
+        width: widthValue,
+        minWidth: widthValue,
+        height: heightValue,
         maxHeight: '100%',
+        maxWidth: '100%',
         objectFit: 'contain',
         marginLeft: 'auto',
         marginRight: 'auto'
       };
     }
 
+    const widthValue = calculatedWidth != null ? `${calculatedWidth}px` : 'auto';
+    const heightValue = calculatedHeight != null ? `${calculatedHeight}px` : 'auto';
     return {
-      width,
-      minWidth: width,
+      width: widthValue,
+      minWidth: widthValue,
+      height: heightValue,
       maxWidth: 'none',
-      height: 'auto',
+      maxHeight: 'none',
       marginLeft: 'auto',
       marginRight: 'auto'
     };
-  }, [zoom, zoomPercent]);
+  }, [imageDimensions.height, imageDimensions.width, zoom, zoomPercent]);
 
   useEffect(() => {
     if (hasUserAdjustedZoomRef.current) {
@@ -422,12 +429,17 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
   }, [fitContentToScreen]);
 
   const handleImageLoad = useCallback(() => {
+    const image = imageRef.current;
+    if (image != null) {
+      setImageDimensions({ width: image.naturalWidth, height: image.naturalHeight });
+    }
     if (!hasUserAdjustedZoomRef.current) {
       fitContentToScreen();
     }
   }, [fitContentToScreen]);
 
   useEffect(() => {
+    setImageDimensions({ width: 0, height: 0 });
     const image = imageRef.current;
     if (image != null && image.complete) {
       handleImageLoad();
@@ -491,7 +503,7 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
         <div className="relative flex flex-1 justify-center sm:flex-none">
           <div
             ref={viewerRef}
-            className={`relative flex-1 h-[100dvh] min-h-[100svh] w-full overscroll-none overflow-auto bg-black touch-none sm:h-auto sm:min-h-0 sm:flex-none sm:max-h-[75vh] sm:rounded-xl sm:border sm:border-slate-800 sm:bg-black/60 sm:p-2 lg:max-h-[80vh] ${
+            className={`relative flex flex-1 h-[100dvh] min-h-[100svh] w-full items-center justify-center overscroll-none overflow-auto bg-black touch-none sm:h-auto sm:min-h-0 sm:flex-none sm:max-h-[75vh] sm:rounded-xl sm:border sm:border-slate-800 sm:bg-black/60 sm:p-2 lg:max-h-[80vh] ${
               isDragging ? 'cursor-grabbing' : 'cursor-grab'
             }`}
             onPointerDown={handlePointerDown}

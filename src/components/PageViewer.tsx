@@ -1,5 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react';
+import type {
+  CSSProperties,
+  PointerEvent as ReactPointerEvent,
+  WheelEvent as ReactWheelEvent
+} from 'react';
 
 interface PageViewerProps {
   pages: string[];
@@ -172,10 +176,31 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
 
   const zoomPercent = Math.round(zoom * 100);
 
+  const imageStyle = useMemo<CSSProperties>(() => {
+    const width = `${zoomPercent}%`;
+
+    if (zoomPercent <= 100) {
+      return {
+        width,
+        minWidth: width,
+        maxWidth: 'none',
+        height: '100%',
+        objectFit: 'contain'
+      };
+    }
+
+    return {
+      width,
+      minWidth: width,
+      maxWidth: 'none',
+      height: 'auto'
+    };
+  }, [zoomPercent]);
+
   return (
     <section className="flex w-full flex-col gap-4">
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 shadow-lg">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 bg-black sm:rounded-2xl sm:border sm:border-slate-800 sm:bg-slate-950/60 sm:p-4 sm:shadow-lg">
+        <div className="hidden flex-wrap items-center justify-between gap-3 sm:flex">
           <div className="flex items-center gap-2 text-sm text-slate-300">
             <button
               type="button"
@@ -225,12 +250,12 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
             </button>
           </div>
         </div>
-        <div className="flex justify-center">
+        <div className="relative flex justify-center">
           <div
             ref={viewerRef}
-            className={`h-[calc(100dvh-7rem)] max-h-[calc(100dvh-7rem)] w-full overflow-auto rounded-xl border border-slate-800 bg-black/60 p-2 sm:h-auto sm:max-h-[75vh] lg:max-h-[80vh] ${
+            className={`relative h-[100dvh] w-full overflow-auto bg-black touch-none sm:h-auto sm:max-h-[75vh] sm:rounded-xl sm:border sm:border-slate-800 sm:bg-black/60 sm:p-2 lg:max-h-[80vh] ${
               isDragging ? 'cursor-grabbing' : 'cursor-grab'
-            } touch-none`}
+            }`}
             onWheel={handleWheel}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
@@ -245,14 +270,47 @@ function PageViewer({ pages, initialPage = 0 }: PageViewerProps): JSX.Element {
                 key={pages[clampedPage]}
                 src={pages[clampedPage]}
                 alt={`Página ${clampedPage + 1}`}
-                className="mx-auto block h-auto max-h-none select-none transition-[width] duration-150 ease-out"
-                style={{ width: `${zoomPercent}%`, minWidth: `${zoomPercent}%`, maxWidth: 'none' }}
+                className="block h-full w-full select-none transition-[width] duration-150 ease-out sm:h-auto sm:w-auto"
+                style={imageStyle}
                 draggable={false}
               />
             )}
           </div>
+          {totalPages > 0 ? (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-2">
+              <button
+                type="button"
+                className={`pointer-events-auto flex h-16 w-16 items-center justify-center rounded-full text-4xl text-white transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:h-12 sm:w-12 sm:text-3xl ${
+                  clampedPage === 0
+                    ? 'cursor-default opacity-0'
+                    : 'bg-black/30 hover:bg-black/50'
+                }`}
+                onClick={handlePrev}
+                disabled={clampedPage === 0}
+                aria-label="Página anterior"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                className={`pointer-events-auto flex h-16 w-16 items-center justify-center rounded-full text-4xl text-white transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:h-12 sm:w-12 sm:text-3xl ${
+                  clampedPage >= totalPages - 1
+                    ? 'cursor-default opacity-0'
+                    : 'bg-black/30 hover:bg-black/50'
+                }`}
+                onClick={handleNext}
+                disabled={clampedPage >= totalPages - 1}
+                aria-label="Página siguiente"
+              >
+                ›
+              </button>
+              <div className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center justify-center rounded-full bg-black/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white sm:text-[0.65rem]">
+                Página {clampedPage + 1} de {totalPages}
+              </div>
+            </div>
+          ) : null}
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-wide text-slate-400">
+        <div className="hidden flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-wide text-slate-400 sm:flex">
           <span>
             Página {clampedPage + 1} de {totalPages}
           </span>

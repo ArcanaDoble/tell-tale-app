@@ -65,30 +65,70 @@ async function extractZipArchive(file: File): Promise<File[]> {
   return extracted;
 }
 
-async function extractRarArchive(file: File): Promise<File[]> {
-  const { createExtractorFromData } = await import('unrar-js');
-  const buffer = new Uint8Array(await file.arrayBuffer());
-  const extractor = await createExtractorFromData({ data: buffer });
-  const extracted: File[] = [];
+let rarWasmBinaryPromise: Promise<ArrayBuffer> | null = null;
 
-  for await (const entry of extractor.extract()) {
-    if (entry.type !== 'file') {
-      continue;
-    }
-    const name = entry.fileHeader.name;
-    if (!isImagePath(name)) {
-      continue;
-    }
-    const filename = sanitizeName(name);
-    if (filename.length === 0) {
-      continue;
-    }
-    const data = entry.fileData as Uint8Array;
-    const mimeType = getMimeType(filename);
-    extracted.push(createImageFile(data, filename, mimeType));
+async function loadRarWasmBinary(): Promise<ArrayBuffer> {
+  if (rarWasmBinaryPromise == null) {
+    rarWasmBinaryPromise = import('node-unrar-js/esm/js/unrar.wasm?url')
+      .then(async (module) => {
+        const response = await fetch(module.default);
+        if (!response.ok) {
+          throw new Error('No se pudo cargar el módulo de extracción de archivos RAR.');
+        }
+        return await response.arrayBuffer();
+      })
+      .catch((error) => {
+        rarWasmBinaryPromise = null;
+        throw error;
+      });
   }
 
-  return extracted;
+  return rarWasmBinaryPromise;
+}
+
+interface UnrarExtractionError extends Error {
+  reason?: string;
+  file?: string;
+}
+
+function isUnrarExtractionError(error: unknown): error is UnrarExtractionError {
+  return typeof error === 'object' && error != null && 'reason' in error;
+}
+
+async function extractRarArchive(file: File): Promise<File[]> {
+  const [{ createExtractorFromData }, wasmBinary] = await Promise.all([
+    import('node-unrar-js'),
+    loadRarWasmBinary()
+  ]);
+  const buffer = new Uint8Array(await file.arrayBuffer());
+  const extractor = await createExtractorFromData({ data: buffer.buffer, wasmBinary });
+  const extractedFiles = extractor.extract({ files: (header) => !header.flags.directory });
+  const images: File[] = [];
+
+  try {
+    for (const { fileHeader, extraction } of extractedFiles.files) {
+      const originalName = fileHeader.name;
+      if (fileHeader.flags.directory || extraction == null || !isImagePath(originalName)) {
+        continue;
+      }
+
+      const filename = sanitizeName(originalName);
+      if (filename.length === 0) {
+        continue;
+      }
+
+      const mimeType = getMimeType(filename);
+      images.push(createImageFile(extraction, filename, mimeType));
+    }
+  } catch (error) {
+    if (isUnrarExtractionError(error)) {
+      const details = error.reason != null ? ` (${error.reason}${error.file ? `: ${error.file}` : ''})` : '';
+      throw new Error(`No se pudo extraer el archivo RAR${details}. Verifica que no esté dañado ni protegido con contraseña.`);
+    }
+    throw error;
+  }
+
+  return images;
 }
 
 export async function extractContentFiles(files: File[]): Promise<File[]> {

@@ -72,7 +72,7 @@ function UploadView(): JSX.Element {
 
     try {
       setStatus('loading');
-      setMessage('Subiendo recurso, espera por favor...');
+      setMessage('Optimizando imágenes y subiendo recurso, espera por favor...');
       setIsUploading(true);
       setUploadProgress(0);
 
@@ -121,16 +121,16 @@ function UploadView(): JSX.Element {
   };
 
   return (
-    <section className="flex flex-1 flex-col gap-6">
+    <section className="flex min-w-0 flex-1 flex-col gap-6 overflow-x-hidden">
       <header className="flex flex-col gap-3 text-center md:text-left">
-        <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">Subir recurso</h1>
-        <p className="text-slate-300">
+        <h1 className="text-3xl font-black tracking-tight text-ink sm:text-4xl">Subir recurso</h1>
+        <p className="max-w-3xl leading-7 text-ink-soft">
           Comparte nuevos mangas, libros ilustrados o documentos con tu comunidad. Los archivos se almacenarán en Firebase
           Storage y se registrarán en Firestore.
         </p>
       </header>
       {!isFirebaseConfigured ? (
-        <div className="grid place-items-center rounded-2xl border border-amber-900/60 bg-amber-950/40 p-10 text-amber-100">
+        <div className="grid place-items-center border-2 border-primary bg-primary/10 p-10 text-primary">
           <div className="flex max-w-lg flex-col gap-3 text-center">
             <p className="text-lg font-semibold">Firebase no está configurado.</p>
             <p>Actualiza tus variables de entorno y recarga la aplicación para habilitar la subida de archivos.</p>
@@ -141,10 +141,10 @@ function UploadView(): JSX.Element {
           onSubmit={(event) => {
             void handleSubmit(event);
           }}
-          className="flex flex-col gap-6 rounded-3xl border border-slate-800 bg-slate-950/60 p-6 shadow-lg"
+          className="flex min-w-0 max-w-full flex-col gap-6 overflow-hidden border-2 border-ink/15 bg-paper-soft p-5 shadow-[5px_5px_0_rgba(22,19,18,0.12)] sm:p-6"
         >
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="flex flex-col gap-2 text-sm text-slate-300">
+            <label className="flex min-w-0 flex-col gap-2 text-sm font-bold text-ink-soft">
               Título
               <input
                 type="text"
@@ -154,10 +154,10 @@ function UploadView(): JSX.Element {
                 onChange={(event) => {
                   setFormState((prev) => ({ ...prev, title: event.target.value }));
                 }}
-                className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-base text-white focus:border-primary focus:outline-none"
+                className="w-full min-w-0 max-w-full border border-ink/15 bg-paper px-4 py-2 text-base text-ink focus:border-primary focus:outline-none"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm text-slate-300">
+            <label className="flex min-w-0 flex-col gap-2 text-sm font-bold text-ink-soft">
               Autor o editorial
               <input
                 type="text"
@@ -167,10 +167,10 @@ function UploadView(): JSX.Element {
                 onChange={(event) => {
                   setFormState((prev) => ({ ...prev, author: event.target.value }));
                 }}
-                className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-base text-white focus:border-primary focus:outline-none"
+                className="w-full min-w-0 max-w-full border border-ink/15 bg-paper px-4 py-2 text-base text-ink focus:border-primary focus:outline-none"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm text-slate-300">
+            <label className="flex min-w-0 flex-col gap-2 text-sm font-bold text-ink-soft">
               Tipo de recurso
               <select
                 name="resourceType"
@@ -180,14 +180,14 @@ function UploadView(): JSX.Element {
                   setFormState((prev) => ({ ...prev, resourceType: value }));
                   setContentFiles([]);
                 }}
-                className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-base text-white focus:border-primary focus:outline-none"
+                className="w-full min-w-0 max-w-full truncate border border-ink/15 bg-paper px-4 py-2 text-base text-ink focus:border-primary focus:outline-none"
               >
                 <option value="manga">Manga (imágenes secuenciales)</option>
                 <option value="libro">Libro ilustrado</option>
                 <option value="documento">Documento (PDF, EPUB, texto)</option>
               </select>
             </label>
-            <label className="flex flex-col gap-2 text-sm text-slate-300">
+            <label className="flex min-w-0 flex-col gap-2 text-sm font-bold text-ink-soft">
               Etiquetas (separadas por coma)
               <input
                 type="text"
@@ -197,10 +197,10 @@ function UploadView(): JSX.Element {
                   setFormState((prev) => ({ ...prev, tags: event.target.value }));
                 }}
                 placeholder="fantasía, aventura, misterio"
-                className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-base text-white focus:border-primary focus:outline-none"
+                className="w-full min-w-0 max-w-full border border-ink/15 bg-paper px-4 py-2 text-base text-ink focus:border-primary focus:outline-none"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm text-slate-300">
+            <label className="flex min-w-0 flex-col gap-2 text-sm font-bold text-ink-soft">
               Colección (opcional)
               <input
                 type="text"
@@ -210,12 +210,12 @@ function UploadView(): JSX.Element {
                   setFormState((prev) => ({ ...prev, collectionName: event.target.value }));
                 }}
                 placeholder="Saga nocturna, Temporada 1, Colección personal"
-                className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-base text-white focus:border-primary focus:outline-none"
+                className="w-full min-w-0 max-w-full border border-ink/15 bg-paper px-4 py-2 text-base text-ink focus:border-primary focus:outline-none"
               />
-              <span className="text-xs text-slate-500">Agrupa recursos relacionados indicando el nombre de la colección.</span>
+              <span className="text-xs text-ink-soft/60">Agrupa recursos relacionados indicando el nombre de la colección.</span>
             </label>
           </div>
-          <label className="flex flex-col gap-2 text-sm text-slate-300">
+          <label className="flex min-w-0 flex-col gap-2 text-sm font-bold text-ink-soft">
             Descripción
             <textarea
               name="description"
@@ -225,12 +225,20 @@ function UploadView(): JSX.Element {
                 setFormState((prev) => ({ ...prev, description: event.target.value }));
               }}
               rows={4}
-              className="min-h-[120px] rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-base text-white focus:border-primary focus:outline-none"
+              className="min-h-[120px] w-full min-w-0 max-w-full border border-ink/15 bg-paper px-4 py-3 text-base text-ink focus:border-primary focus:outline-none"
             />
           </label>
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="flex flex-col gap-2 text-sm text-slate-300">
+            <label className="flex min-w-0 flex-col gap-2 text-sm font-bold text-ink-soft">
               Portada (opcional)
+              <span className="flex min-h-14 min-w-0 items-center gap-3 border border-dashed border-ink/30 bg-paper px-3 py-2">
+                <span className="shrink-0 border border-ink/20 bg-paper-soft px-3 py-2 text-sm font-black text-ink">
+                  Seleccionar
+                </span>
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink-soft/70">
+                  {formState.coverFile?.name ?? 'Ningún archivo seleccionado'}
+                </span>
+              </span>
               <input
                 type="file"
                 accept="image/*"
@@ -238,20 +246,31 @@ function UploadView(): JSX.Element {
                   const [file] = Array.from(event.target.files ?? []);
                   setFormState((prev) => ({ ...prev, coverFile: file ?? null }));
                 }}
-                className="rounded-xl border border-dashed border-slate-700 bg-slate-900 px-4 py-3 text-base text-white focus:border-primary focus:outline-none"
+                className="sr-only"
               />
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-ink-soft/60">
                 Si no eliges portada, usaremos la primera imagen como portada para mangas y libros.
               </span>
             </label>
-            <label className="flex flex-col gap-2 text-sm text-slate-300">
+            <label className="flex min-w-0 flex-col gap-2 text-sm font-bold text-ink-soft">
               Archivos de contenido
+              <span className="flex min-h-14 min-w-0 items-center gap-3 border border-dashed border-ink/30 bg-paper px-3 py-2">
+                <span className="shrink-0 border border-ink/20 bg-paper-soft px-3 py-2 text-sm font-black text-ink">
+                  Elegir
+                </span>
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink-soft/70">
+                  {contentFiles.length === 0
+                    ? 'Ningún archivo seleccionado'
+                    : contentFiles.length === 1
+                      ? contentFiles[0].name
+                      : `${contentFiles.length} archivos seleccionados`}
+                </span>
+              </span>
               <input
                 key={formState.resourceType}
                 type="file"
                 accept={acceptContent}
                 multiple={allowMultiple}
-                required
                 onChange={(event) => {
                   const files = Array.from(event.target.files ?? []);
                   setResourceId(null);
@@ -302,59 +321,59 @@ function UploadView(): JSX.Element {
                     setUploadProgress(0);
                   }
                 }}
-                className="rounded-xl border border-dashed border-slate-700 bg-slate-900 px-4 py-3 text-base text-white focus:border-primary focus:outline-none"
+                className="sr-only"
               />
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-ink-soft/60">
                 {formState.resourceType === 'documento'
                   ? 'Solo se tomará el primer archivo para documentos. Acepta PDF, EPUB, TXT y formatos de texto populares.'
-                  : 'Puedes subir varias imágenes. Se ordenarán automáticamente por nombre para generar las páginas.'}
+                  : 'Puedes subir varias imágenes. Se ordenarán automáticamente y se optimizarán antes de subir.'}
               </span>
             </label>
           </div>
           {status !== 'idle' ? (
             <div
-              className={`rounded-2xl border px-4 py-3 text-sm ${
+              className={`border-2 px-4 py-3 text-sm font-semibold ${
                 status === 'loading'
-                  ? 'border-slate-700 bg-slate-900 text-slate-200'
+                  ? 'border-ink/15 bg-paper text-ink'
                   : status === 'success'
-                    ? 'border-emerald-900/60 bg-emerald-950/40 text-emerald-200'
-                    : 'border-rose-900/60 bg-rose-950/40 text-rose-200'
+                    ? 'border-accent bg-accent/10 text-ink'
+                    : 'border-primary bg-primary/10 text-primary'
               }`}
             >
               {message}
               {isUploading ? (
                 <div className="mt-4">
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
+                  <div className="h-2 w-full overflow-hidden bg-ink/10">
                     <div
                       className="h-full rounded-full bg-primary transition-all duration-200"
                       style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
-                  <span className="mt-2 block text-xs text-slate-400">{uploadProgress}% completado</span>
+                  <span className="mt-2 block text-xs text-ink-soft/70">{uploadProgress}% completado</span>
                 </div>
               ) : null}
               {status === 'success' && resourceId != null ? (
-                <div className="mt-2 text-xs text-slate-300">
+                <div className="mt-2 text-xs text-ink-soft">
                   <span>Id del recurso: {resourceId}</span>
                   {' · '}
-                  <Link to={`/details/${resourceId}`} className="text-primary underline">
+                  <Link to={`/details/${resourceId}`} className="font-black text-primary underline">
                     Ver detalles
                   </Link>
                 </div>
               ) : null}
             </div>
           ) : null}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap">
             <button
               type="submit"
-              className="rounded-full bg-primary px-6 py-2 text-sm font-semibold uppercase tracking-wide text-white transition hover:bg-primary/80 disabled:cursor-not-allowed disabled:bg-slate-700"
+              className="min-h-11 w-full min-w-0 bg-ink px-6 text-sm font-black uppercase text-paper transition hover:bg-primary disabled:cursor-not-allowed disabled:bg-ink/35 sm:w-auto"
               disabled={status === 'loading' || isProcessingFiles}
             >
-              {status === 'loading' ? 'Subiendo…' : 'Subir recurso'}
+              {status === 'loading' ? 'Subiendo...' : 'Subir recurso'}
             </button>
             <button
               type="button"
-              className="rounded-full border border-slate-700 px-6 py-2 text-sm font-semibold uppercase tracking-wide text-slate-200 transition hover:border-primary hover:text-primary"
+              className="min-h-11 w-full min-w-0 border border-ink/20 px-6 text-sm font-black uppercase text-ink transition hover:border-ink sm:w-auto"
               onClick={() => {
                 setFormState(defaultState);
                 setContentFiles([]);

@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "base-de-datos-noma"
+  },
+  "targets": {
+    "base-de-datos-noma": {
+      "hosting": {
+        "tellTale": [
+          "tell-tale"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

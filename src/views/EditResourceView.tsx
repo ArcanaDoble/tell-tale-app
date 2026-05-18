@@ -170,7 +170,7 @@ function EditResourceView(): JSX.Element {
 
   if (isLoading) {
     return (
-      <section className="grid flex-1 place-items-center rounded-2xl border border-slate-800 bg-slate-950/40 p-12 text-slate-400">
+      <section className="grid flex-1 place-items-center border-2 border-ink/15 bg-paper-soft p-12 text-ink-soft">
         Cargando información del recurso...
       </section>
     );
@@ -178,7 +178,7 @@ function EditResourceView(): JSX.Element {
 
   if (loadError != null) {
     return (
-      <section className="grid flex-1 place-items-center rounded-2xl border border-rose-900/60 bg-rose-950/40 p-12 text-rose-200">
+      <section className="grid flex-1 place-items-center border-2 border-primary bg-primary/10 p-12 text-primary">
         {loadError}
       </section>
     );
@@ -186,7 +186,7 @@ function EditResourceView(): JSX.Element {
 
   if (resource == null) {
     return (
-      <section className="grid flex-1 place-items-center rounded-2xl border border-rose-900/60 bg-rose-950/40 p-12 text-rose-200">
+      <section className="grid flex-1 place-items-center border-2 border-primary bg-primary/10 p-12 text-primary">
         El recurso indicado no se encontró.
       </section>
     );
@@ -197,14 +197,14 @@ function EditResourceView(): JSX.Element {
   return (
     <section className="flex flex-1 flex-col gap-6">
       <header className="flex flex-col gap-3 text-center md:text-left">
-        <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">Editar recurso</h1>
-        <p className="text-slate-300">
+        <h1 className="text-3xl font-black tracking-tight text-ink sm:text-4xl">Editar recurso</h1>
+        <p className="max-w-3xl leading-7 text-ink-soft">
           Actualiza los metadatos del título seleccionado. Puedes modificar el nombre, la portada, el autor y la colección en la
           que se agrupa.
         </p>
       </header>
       {!canEdit ? (
-        <div className="grid place-items-center rounded-2xl border border-amber-900/60 bg-amber-950/40 p-10 text-amber-100">
+        <div className="grid place-items-center border-2 border-primary bg-primary/10 p-10 text-primary">
           <div className="flex max-w-lg flex-col gap-3 text-center">
             <p className="text-lg font-semibold">Firebase no está configurado.</p>
             <p>Actualiza tus variables de entorno y recarga la aplicación para habilitar la edición de recursos.</p>
@@ -215,11 +215,11 @@ function EditResourceView(): JSX.Element {
           onSubmit={(event) => {
             void handleSubmit(event);
           }}
-          className="flex flex-col gap-6 rounded-3xl border border-slate-800 bg-slate-950/60 p-6 shadow-lg"
+          className="flex flex-col gap-6 border-2 border-ink/15 bg-paper-soft p-5 shadow-[5px_5px_0_rgba(22,19,18,0.12)] sm:p-6"
         >
           <div className="grid gap-4 md:grid-cols-[2fr,1fr]">
             <div className="flex flex-col gap-4">
-              <label className="flex flex-col gap-2 text-sm text-slate-300">
+              <label className="flex flex-col gap-2 text-sm font-bold text-ink-soft">
                 Título
                 <input
                   type="text"
@@ -229,10 +229,10 @@ function EditResourceView(): JSX.Element {
                   onChange={(event) => {
                     setFormState((prev) => ({ ...prev, title: event.target.value }));
                   }}
-                  className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-base text-white focus:border-primary focus:outline-none"
+                  className="border border-ink/15 bg-paper px-4 py-2 text-base text-ink focus:border-primary focus:outline-none"
                 />
               </label>
-              <label className="flex flex-col gap-2 text-sm text-slate-300">
+              <label className="flex flex-col gap-2 text-sm font-bold text-ink-soft">
                 Autor o editorial
                 <input
                   type="text"
@@ -242,10 +242,10 @@ function EditResourceView(): JSX.Element {
                   onChange={(event) => {
                     setFormState((prev) => ({ ...prev, author: event.target.value }));
                   }}
-                  className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-base text-white focus:border-primary focus:outline-none"
+                  className="border border-ink/15 bg-paper px-4 py-2 text-base text-ink focus:border-primary focus:outline-none"
                 />
               </label>
-              <label className="flex flex-col gap-2 text-sm text-slate-300">
+              <label className="flex flex-col gap-2 text-sm font-bold text-ink-soft">
                 Colección (opcional)
                 <input
                   type="text"
@@ -255,11 +255,11 @@ function EditResourceView(): JSX.Element {
                     setFormState((prev) => ({ ...prev, collectionName: event.target.value }));
                   }}
                   placeholder="Saga nocturna, Temporada 1, Colección personal"
-                  className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-base text-white focus:border-primary focus:outline-none"
+                  className="border border-ink/15 bg-paper px-4 py-2 text-base text-ink focus:border-primary focus:outline-none"
                 />
-                <span className="text-xs text-slate-500">Escribe un nombre para agrupar recursos relacionados.</span>
+                <span className="text-xs text-ink-soft/60">Escribe un nombre para agrupar recursos relacionados.</span>
               </label>
-              <label className="flex flex-col gap-2 text-sm text-slate-300">
+              <label className="flex flex-col gap-2 text-sm font-bold text-ink-soft">
                 Etiquetas (separadas por coma)
                 <input
                   type="text"
@@ -269,31 +269,31 @@ function EditResourceView(): JSX.Element {
                     setFormState((prev) => ({ ...prev, tags: event.target.value }));
                   }}
                   placeholder="fantasía, aventura, misterio"
-                  className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-base text-white focus:border-primary focus:outline-none"
+                  className="border border-ink/15 bg-paper px-4 py-2 text-base text-ink focus:border-primary focus:outline-none"
                 />
               </label>
             </div>
             <div className="flex flex-col gap-3">
-              <div className="overflow-hidden rounded-2xl border border-slate-800">
+              <div className="overflow-hidden border-2 border-ink bg-ink">
                 {coverPreview != null ? (
                   <img src={coverPreview} alt={formState.title} className="aspect-[3/4] w-full object-cover" />
                 ) : (
-                  <div className="grid aspect-[3/4] place-items-center bg-slate-900 text-slate-500">Sin portada</div>
+                  <div className="grid aspect-[3/4] place-items-center bg-paper text-ink-soft/60">Sin portada</div>
                 )}
               </div>
-              <label className="flex flex-col gap-2 text-sm text-slate-300">
+              <label className="flex flex-col gap-2 text-sm font-bold text-ink-soft">
                 Cambiar portada
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleCoverChange}
-                  className="rounded-xl border border-dashed border-slate-700 bg-slate-900 px-4 py-3 text-base text-white focus:border-primary focus:outline-none"
+                  className="border border-dashed border-ink/30 bg-paper px-4 py-3 text-base text-ink focus:border-primary focus:outline-none"
                 />
-                <span className="text-xs text-slate-500">Sube una nueva imagen si deseas reemplazar la portada actual.</span>
+                <span className="text-xs text-ink-soft/60">Sube una nueva imagen si deseas reemplazar la portada actual.</span>
               </label>
             </div>
           </div>
-          <label className="flex flex-col gap-2 text-sm text-slate-300">
+          <label className="flex flex-col gap-2 text-sm font-bold text-ink-soft">
             Descripción
             <textarea
               name="description"
@@ -303,25 +303,25 @@ function EditResourceView(): JSX.Element {
                 setFormState((prev) => ({ ...prev, description: event.target.value }));
               }}
               rows={5}
-              className="min-h-[140px] rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-base text-white focus:border-primary focus:outline-none"
+              className="min-h-[140px] border border-ink/15 bg-paper px-4 py-3 text-base text-ink focus:border-primary focus:outline-none"
             />
           </label>
           {status !== 'idle' ? (
             <div
-              className={`rounded-2xl border px-4 py-3 text-sm ${
+              className={`border-2 px-4 py-3 text-sm font-semibold ${
                 status === 'saving'
-                  ? 'border-slate-700 bg-slate-900 text-slate-200'
+                  ? 'border-ink/15 bg-paper text-ink'
                   : status === 'success'
-                    ? 'border-emerald-900/60 bg-emerald-950/40 text-emerald-200'
-                    : 'border-rose-900/60 bg-rose-950/40 text-rose-200'
+                    ? 'border-accent bg-accent/10 text-ink'
+                    : 'border-primary bg-primary/10 text-primary'
               }`}
             >
               {message}
               {status === 'success' ? (
-                <div className="mt-2 text-xs text-slate-300">
+                <div className="mt-2 text-xs text-ink-soft">
                   <button
                     type="button"
-                    className="text-primary underline"
+                    className="font-black text-primary underline"
                     onClick={() => {
                       navigate(`/details/${resource.id}`);
                     }}
@@ -335,14 +335,14 @@ function EditResourceView(): JSX.Element {
           <div className="flex flex-wrap gap-3">
             <button
               type="submit"
-              className="rounded-full bg-primary px-6 py-2 text-sm font-semibold uppercase tracking-wide text-white transition hover:bg-primary/80 disabled:cursor-not-allowed disabled:bg-slate-700"
+              className="min-h-11 bg-ink px-6 text-sm font-black uppercase text-paper transition hover:bg-primary disabled:cursor-not-allowed disabled:bg-ink/35"
               disabled={status === 'saving'}
             >
-              {status === 'saving' ? 'Guardando…' : 'Guardar cambios'}
+              {status === 'saving' ? 'Guardando...' : 'Guardar cambios'}
             </button>
             <Link
               to={`/details/${resource.id}`}
-              className="rounded-full border border-slate-700 px-6 py-2 text-sm font-semibold uppercase tracking-wide text-slate-200 transition hover:border-primary hover:text-primary"
+              className="inline-flex min-h-11 items-center border border-ink/20 px-6 text-sm font-black uppercase text-ink transition hover:border-ink"
             >
               Cancelar
             </Link>

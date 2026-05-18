@@ -10,6 +10,7 @@ import type {
 } from '../types/library';
 import { db, isFirebaseConfigured, storage } from '../firebase/config';
 import { normalizeCollectionName } from '../utils/collections';
+import { optimizeReaderImages } from './imageOptimizationService';
 
 const COLLECTION_NAME = 'resources';
 
@@ -156,6 +157,29 @@ interface UploadResourceOptions {
   onProgress?: (progress: number) => void;
 }
 
+const PAGE_UPLOAD_CONCURRENCY = 8;
+const OPTIMIZATION_PROGRESS_WEIGHT = 0.12;
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
+}
+
 export async function uploadResource(
   payload: ResourceUploadPayload,
   options: UploadResourceOptions = {}
@@ -177,16 +201,23 @@ export async function uploadResource(
     .map((tag) => tag.trim())
     .filter((tag) => tag.length > 0);
 
-  const sortedFiles = [...payload.contentFiles].sort((a, b) =>
+  let sortedFiles = [...payload.contentFiles].sort((a, b) =>
     a.name.localeCompare(b.name, undefined, { numeric: true })
   );
 
   const pages: string[] = [];
   let downloadUrl: string | null = null;
 
-  const totalUploadBytes =
-    sortedFiles.reduce((total, file) => total + file.size, 0) + (payload.coverFile?.size ?? 0);
-  let uploadedBytes = 0;
+  if (payload.resourceType !== 'documento') {
+    sortedFiles = await optimizeReaderImages(sortedFiles, (completed, total) => {
+      if (total > 0) {
+        options.onProgress?.((completed / total) * OPTIMIZATION_PROGRESS_WEIGHT);
+      }
+    });
+  }
+
+  const totalUploadBytes = sortedFiles.reduce((total, file) => total + file.size, 0) + (payload.coverFile?.size ?? 0);
+  const uploadedBytesByKey = new Map<string, number>();
 
   const reportProgress = (bytes: number): void => {
     if (totalUploadBytes <= 0) {
@@ -194,23 +225,40 @@ export async function uploadResource(
       return;
     }
     const ratio = Math.min(bytes / totalUploadBytes, 1);
-    options.onProgress?.(ratio);
+    const uploadRatio =
+      payload.resourceType === 'documento'
+        ? ratio
+        : OPTIMIZATION_PROGRESS_WEIGHT + ratio * (1 - OPTIMIZATION_PROGRESS_WEIGHT);
+    options.onProgress?.(Math.min(uploadRatio, 1));
+  };
+
+  const reportAggregateUploadProgress = (): void => {
+    const transferred = Array.from(uploadedBytesByKey.values()).reduce((total, bytes) => total + bytes, 0);
+    reportProgress(transferred);
   };
 
   reportProgress(0);
 
-  const uploadFileWithProgress = async (fileRef: StorageReference, file: File): Promise<UploadTaskSnapshot> =>
+  const uploadFileWithProgress = async (
+    progressKey: string,
+    fileRef: StorageReference,
+    file: File
+  ): Promise<UploadTaskSnapshot> =>
     await new Promise((resolve, reject) => {
-      const uploadTask = uploadBytesResumable(fileRef, file);
+      uploadedBytesByKey.set(progressKey, 0);
+      const uploadTask = uploadBytesResumable(fileRef, file, {
+        contentType: file.type || undefined
+      });
       uploadTask.on(
         'state_changed',
         (snapshot) => {
-          reportProgress(uploadedBytes + snapshot.bytesTransferred);
+          uploadedBytesByKey.set(progressKey, snapshot.bytesTransferred);
+          reportAggregateUploadProgress();
         },
         reject,
         () => {
-          uploadedBytes += file.size;
-          reportProgress(uploadedBytes);
+          uploadedBytesByKey.set(progressKey, file.size);
+          reportAggregateUploadProgress();
           resolve(uploadTask.snapshot);
         }
       );
@@ -219,22 +267,22 @@ export async function uploadResource(
   if (payload.resourceType === 'documento') {
     const [file] = sortedFiles;
     const fileRef = ref(storageService, `resources/${documentRef.id}/archivo/${file.name}`);
-    const snapshot = await uploadFileWithProgress(fileRef, file);
+    const snapshot = await uploadFileWithProgress('document', fileRef, file);
     downloadUrl = await getDownloadURL(snapshot.ref);
   } else {
-    for (const [index, file] of sortedFiles.entries()) {
+    const pageUrls = await mapWithConcurrency(sortedFiles, PAGE_UPLOAD_CONCURRENCY, async (file, index) => {
       const paddedIndex = String(index + 1).padStart(3, '0');
       const pageRef = ref(storageService, `resources/${documentRef.id}/paginas/${paddedIndex}-${file.name}`);
-      const snapshot = await uploadFileWithProgress(pageRef, file);
-      const url = await getDownloadURL(snapshot.ref);
-      pages.push(url);
-    }
+      const snapshot = await uploadFileWithProgress(`page-${index}`, pageRef, file);
+      return await getDownloadURL(snapshot.ref);
+    });
+    pages.push(...pageUrls);
   }
 
   let coverUrl: string | undefined;
   if (payload.coverFile != null) {
     const coverRef = ref(storageService, `resources/${documentRef.id}/portada/${payload.coverFile.name}`);
-    const snapshot = await uploadFileWithProgress(coverRef, payload.coverFile);
+    const snapshot = await uploadFileWithProgress('cover', coverRef, payload.coverFile);
     coverUrl = await getDownloadURL(snapshot.ref);
   } else if (pages.length > 0) {
     coverUrl = pages[0];

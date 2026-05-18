@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Icon from './Icon';
 
 interface BookmarkButtonProps {
   resourceId: string;
@@ -27,13 +28,13 @@ function BookmarkButton({ resourceId }: BookmarkButtonProps): JSX.Element {
     <button
       type="button"
       onClick={toggleBookmark}
-      className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+      className={`inline-flex min-h-11 items-center justify-center gap-2 border px-4 text-sm font-black uppercase transition ${
         bookmarked
-          ? 'border-accent/60 bg-accent/10 text-accent hover:bg-accent/20'
-          : 'border-slate-700 text-slate-200 hover:border-primary hover:text-primary'
+          ? 'border-accent bg-accent text-paper hover:bg-accent/90'
+          : 'border-ink/20 text-ink hover:border-ink'
       }`}
     >
-      <span aria-hidden>📑</span>
+      <Icon name="bookmark" className="h-4 w-4" />
       {bookmarked ? 'Marcado' : 'Guardar marcador'}
     </button>
   );

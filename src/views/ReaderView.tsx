@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import Icon from '../components/Icon';
 import PageViewer from '../components/PageViewer';
 import type { Resource } from '../types/library';
 import { getResourceById } from '../services/libraryService';
+import { getReadingProgress } from '../utils/readingProgress';
 
 function ReaderView(): JSX.Element {
   const { resourceId } = useParams<{ resourceId: string }>();
@@ -25,7 +27,7 @@ function ReaderView(): JSX.Element {
 
   if (isLoading) {
     return (
-      <section className="grid flex-1 place-items-center rounded-2xl border border-slate-800 bg-slate-950/40 p-12 text-slate-400">
+      <section className="grid min-h-screen place-items-center bg-reader-night p-12 text-paper/65">
         Preparando lector...
       </section>
     );
@@ -33,40 +35,48 @@ function ReaderView(): JSX.Element {
 
   if (resource == null) {
     return (
-      <section className="grid flex-1 place-items-center rounded-2xl border border-rose-900/60 bg-rose-950/40 p-12 text-rose-200">
-        No encontramos el contenido solicitado.
+      <section className="grid min-h-screen place-items-center bg-reader-night p-6 text-paper">
+        <div className="max-w-md border border-primary/60 bg-primary/10 p-6 text-center">
+          No encontramos el contenido solicitado.
+        </div>
       </section>
     );
   }
 
+  const storedProgress = getReadingProgress(resource.id);
+  const initialPage =
+    storedProgress != null && storedProgress.totalPages === resource.pageCount ? storedProgress.page : 0;
+
   return (
-    <section className="flex flex-1 flex-col gap-6">
-      <div className="flex flex-col gap-4 rounded-3xl border border-slate-800 bg-slate-950/60 p-4 shadow-lg sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white sm:text-3xl">{resource.title}</h1>
-          <p className="text-sm text-slate-400">Por {resource.author}</p>
+    <section className="flex h-[100dvh] min-h-[100svh] flex-col overflow-hidden bg-reader-night">
+      <div className="z-30 hidden shrink-0 flex-col gap-3 border-b border-paper/10 bg-reader-night/94 px-4 py-3 text-paper backdrop-blur xl:flex xl:flex-row xl:items-center xl:justify-between xl:px-6">
+        <div className="min-w-0">
+          <h1 className="truncate text-lg font-black xl:text-2xl">{resource.title}</h1>
+          <p className="text-sm text-paper/55">Por {resource.author}</p>
         </div>
-        <div className="flex flex-wrap gap-3 text-sm">
+        <div className="flex flex-wrap gap-2 text-sm font-black uppercase">
           <Link
             to={`/details/${resource.id}`}
-            className="rounded-full border border-slate-700 px-4 py-2 font-semibold text-slate-200 transition hover:border-primary hover:text-primary"
+            className="inline-flex min-h-10 items-center justify-center gap-2 border border-paper/20 px-3 text-paper transition hover:border-paper"
           >
+            <Icon name="book" className="h-4 w-4" />
             Ver detalles
           </Link>
           <Link
             to="/"
-            className="rounded-full border border-slate-700 px-4 py-2 font-semibold text-slate-200 transition hover:border-primary hover:text-primary"
+            className="inline-flex min-h-10 items-center justify-center gap-2 bg-paper px-3 text-ink transition hover:bg-primary hover:text-paper"
           >
-            Volver a la biblioteca
+            <Icon name="library" className="h-4 w-4" />
+            Biblioteca
           </Link>
         </div>
       </div>
       {resource.hasReader ? (
-        <PageViewer pages={resource.pages} />
+        <PageViewer pages={resource.pages} resourceId={resource.id} initialPage={initialPage} title={resource.title} />
       ) : (
-        <div className="grid flex-1 place-items-center rounded-2xl border border-slate-800 bg-slate-950/40 p-12 text-center text-slate-300">
+        <div className="grid flex-1 place-items-center p-6 text-center text-paper/70">
           <div className="flex max-w-xl flex-col items-center gap-4">
-            <p className="text-lg font-semibold text-white">Este recurso no tiene visor disponible.</p>
+            <p className="text-lg font-black text-paper">Este recurso no tiene visor disponible.</p>
             <p>
               Puedes descargar el archivo para leerlo en tu dispositivo favorito. Si esperabas ver páginas aquí, verifica que el
               recurso subido incluya imágenes.
@@ -74,10 +84,11 @@ function ReaderView(): JSX.Element {
             {resource.downloadUrl != null ? (
               <a
                 href={resource.downloadUrl}
-                className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary/80"
+                className="inline-flex min-h-11 items-center justify-center gap-2 bg-paper px-5 text-sm font-black uppercase text-ink transition hover:bg-primary hover:text-paper"
                 target="_blank"
                 rel="noopener noreferrer"
               >
+                <Icon name="download" className="h-4 w-4" />
                 Descargar archivo
               </a>
             ) : null}
